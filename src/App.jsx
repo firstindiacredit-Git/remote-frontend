@@ -252,7 +252,7 @@ function App() {
     socket.on("connection-accepted", (hostInfo) => {
       message.success("Connection approved by host!");
       setPendingConnection(false);
-      
+
       // Connect to the host
       setHostId(hostInfo.hostId);
       setConnected(true);
@@ -406,11 +406,12 @@ function App() {
 
   // Function to handle download
   const handleDownload = () => {
-    // Direct Google Drive download link
-    const downloadUrl = "https://drive.google.com/uc?export=download&id=1AJ9W9m42kxcd3KgiqhcBdy1-vWKYQbll";
-
-    // Open in new tab to trigger download
-    window.open(downloadUrl, '_blank');
+    const link = document.createElement("a");
+    link.href = "https://drive.google.com/uc?export=download&id=1GPAMoyyfJkI_xfG2f1salpYaV5Hb5YZG";
+    link.setAttribute("download", "RemoteDeskApp_Setup.exe"); // Suggested name
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Add these functions for the session code flow
@@ -423,7 +424,7 @@ function App() {
       message.error("Please enter a valid 6-digit code");
       return;
     }
-    
+
     socket.emit("connect-with-code", { code: sessionCode });
     setCodeInputVisible(false);
   };
@@ -564,11 +565,10 @@ function App() {
                 }}></span>
                 <Text>{connectionStatus}</Text>
               </div>
-
+              <a href="https://remotedesk-downloads.s3.ap-south-1.amazonaws.com/RemoteDeskApp+Setup+1.0.0.exe">
               <Button
                 type="primary"
                 icon={<DownloadOutlined />}
-                onClick={handleDownload}
                 style={{
                   backgroundColor: "#52c41a",
                   borderColor: "#52c41a"
@@ -576,6 +576,7 @@ function App() {
               >
                 Download RemoteDeskApp
               </Button>
+              </a>
             </Space>
           </Header>
 
@@ -595,16 +596,16 @@ function App() {
               <div style={{ textAlign: "center", padding: "24px" }}>
                 <Space direction="vertical" size="large" style={{ width: "100%" }}>
                   <Text>Enter the session code provided by the host computer</Text>
-                  
-                  <Button 
-                    type="primary" 
-                    size="large" 
+
+                  <Button
+                    type="primary"
+                    size="large"
                     icon={<LinkOutlined />}
                     onClick={showCodeInput}
                   >
                     Connect with Session Code
                   </Button>
-                  
+
                   {pendingConnection && pendingHostInfo && (
                     <div style={{ marginTop: "24px" }}>
                       <Alert
@@ -633,7 +634,7 @@ function App() {
         onOk={handleCodeSubmit}
         onCancel={() => setCodeInputVisible(false)}
       >
-        <Input 
+        <Input
           placeholder="6-digit code"
           maxLength={6}
           size="large"
