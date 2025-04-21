@@ -1015,7 +1015,9 @@ import {
   CodeOutlined,
   AppstoreOutlined,
   TeamOutlined,
-  EyeOutlined
+  EyeOutlined,
+  VideoCameraOutlined,
+  StopOutlined
 } from "@ant-design/icons";
 
 const { Header, Content, Footer } = Layout;
@@ -1053,6 +1055,10 @@ function App() {
   const [pendingConnection, setPendingConnection] = useState(false);
   const [pendingHostInfo, setPendingHostInfo] = useState(null);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingStatus, setRecordingStatus] = useState(null);
+  const [recordingProgress, setRecordingProgress] = useState(null);
+  const [recordedFiles, setRecordedFiles] = useState([]);
 
   useEffect(() => {
     // Socket connection listeners
@@ -1221,6 +1227,38 @@ function App() {
       setPendingHostInfo(null);
     });
 
+    socket.on("recording-status", (data) => {
+      setRecordingStatus(data.status);
+      if (data.progress) {
+        setRecordingProgress(data.progress);
+      }
+      if (data.error) {
+        message.error(`Recording error: ${data.error}`);
+      }
+      
+      if (data.status === "recording") {
+        setIsRecording(true);
+      } else if (["error", "stopped", "cancelled"].includes(data.status)) {
+        setIsRecording(false);
+      }
+    });
+
+    socket.on("recording-complete", (data) => {
+      setIsRecording(false);
+      setRecordingStatus("completed");
+      
+      message.success(`Recording completed! Duration: ${Math.floor(data.duration / 60)}:${(data.duration % 60).toString().padStart(2, '0')}`);
+      
+      // Add to recorded files list
+      setRecordedFiles(prev => [...prev, {
+        id: data.recordingId,
+        duration: data.duration,
+        size: data.fileSize,
+        date: new Date().toLocaleString(),
+        path: data.filePath
+      }]);
+    });
+
     return () => {
       // Cleanup
       socket.off("host-available");
@@ -1360,7 +1398,41 @@ function App() {
     * {
       box-sizing: border-box;
     }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
   `;
+
+  // Add these functions to start and stop recording
+  const startRecording = () => {
+    if (!hostId) return;
+    
+    socket.emit("start-screen-recording", {
+      from: socket.id,
+      to: hostId,
+      recordingOptions: {
+        audio: false,
+        video: true,
+        quality: "high"
+      }
+    });
+    
+    message.info("Requesting screen recording...");
+  };
+
+  const stopRecording = () => {
+    if (!hostId || !isRecording) return;
+    
+    socket.emit("stop-screen-recording", {
+      from: socket.id,
+      to: hostId
+    });
+    
+    message.info("Stopping screen recording...");
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#000' }}>
@@ -1415,6 +1487,57 @@ function App() {
             >
               Exit Session
             </Button>
+            {isRecording ? (
+              <Button
+                danger
+                icon={<StopOutlined />}
+                onClick={stopRecording}
+                style={{
+                  background: 'rgba(255, 77, 79, 0.2)',
+                  borderColor: 'rgba(255, 77, 79, 0.5)',
+                  color: '#ff4d4f',
+                  marginRight: '10px'
+                }}
+              >
+                Stop Recording
+              </Button>
+            ) : (
+              <Button
+                type="primary"
+                icon={<VideoCameraOutlined />}
+                onClick={startRecording}
+                style={{
+                  background: 'rgba(0, 183, 255, 0.2)',
+                  borderColor: 'rgba(0, 183, 255, 0.5)',
+                  color: '#00b7ff',
+                  marginRight: '10px'
+                }}
+              >
+                Record Screen
+              </Button>
+            )}
+            {isRecording && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 15px',
+                background: 'rgba(255, 0, 0, 0.1)',
+                borderRadius: '4px',
+                marginRight: '10px'
+              }}>
+                <div style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: '#ff4d4f',
+                  marginRight: '8px',
+                  animation: 'pulse 1.5s infinite'
+                }} />
+                <span style={{ color: '#ff4d4f', fontWeight: '500' }}>
+                  Recording {recordingProgress?.elapsedTime ? `(${Math.floor(recordingProgress.elapsedTime / 60)}:${(recordingProgress.elapsedTime % 60).toString().padStart(2, '0')})` : ''}
+                </span>
+              </div>
+            )}
           </div>
 
           <div style={{
