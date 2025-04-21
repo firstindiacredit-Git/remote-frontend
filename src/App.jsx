@@ -1366,7 +1366,7 @@ function App() {
     <div style={{ minHeight: '100vh', background: '#000' }}>
       {/* Inject global styles */}
       <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
-      
+
       {fullScreenMode ? (
         // Fullscreen mode when connected to a host - with updated UI
         <div style={{
@@ -1465,9 +1465,9 @@ function App() {
         </div>
       ) : (
         // Framer-inspired modern layout
-        <div style={{ 
-          minHeight: "100vh", 
-          display: "flex", 
+        <div style={{
+          minHeight: "100vh",
+          display: "flex",
           flexDirection: "column",
           background: '#000',
           color: '#fff',
@@ -1487,7 +1487,7 @@ function App() {
             borderBottom: "1px solid rgba(255, 255, 255, 0.05)"
           }}>
             <div>
-              <img src="Images/flydesk1.png" style={{ height: "32px" }} alt="FLYDESK" />
+              <img src="Images/flydesk1.png" style={{ height: "35px", background: "transparent" }} alt="FLYDESK" />
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -1496,9 +1496,9 @@ function App() {
                 alignItems: "center",
                 gap: "8px"
               }}>
-                <Badge color={connectionStatus.includes("Connected") ? "#00FFFF" : 
-                       connectionStatus.includes("Reconnecting") ? "#F5A623" : "#FF4D4F"} 
-                       status="processing" />
+                <Badge color={connectionStatus.includes("Connected") ? "#00FFFF" :
+                  connectionStatus.includes("Reconnecting") ? "#F5A623" : "#FF4D4F"}
+                  status="processing" />
                 <Text style={{ color: "rgba(255, 255, 255, 0.8)", margin: 0, fontSize: "14px" }}>
                   {connectionStatus}
                 </Text>
@@ -1514,7 +1514,7 @@ function App() {
                     height: "38px",
                     padding: "0 20px",
                     background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)",
-                    borderColor: "transparent", 
+                    borderColor: "transparent",
                     borderRadius: "6px",
                     fontWeight: 500,
                     boxShadow: "0 4px 12px rgba(0, 128, 255, 0.3)",
@@ -1563,31 +1563,33 @@ function App() {
                 zIndex: 0
               }}></div>
 
-              <div style={{ maxWidth: "900px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-                <Title level={1} style={{
-                  color: "white",
-                  fontSize: "clamp(2.5rem, 5vw, 4rem)",
-                  marginBottom: "20px",
-                  fontWeight: "700",
-                  letterSpacing: "-0.03em",
-                  lineHeight: "1.1"
-                }}>
-                  Remote Control Made <br/> Simple & Secure 
-                </Title>
-                <Paragraph style={{
-                  fontSize: "clamp(1rem, 2vw, 1.25rem)",
-                  color: "rgba(255,255,255,0.7)",
-                  maxWidth: "650px",
-                  margin: "0 auto 50px",
-                  lineHeight: "1.6",
-                  fontWeight: "400"
-                }}>
-                  Connect securely to any computer anywhere in the world with FLYDESK's powerful remote desktop solution.
-                </Paragraph>
+              <div className="row" style={{ maxWidth: "900px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+                <div className="col-6" >
+                  <Title level={1} style={{
+                    color: "white",
+                    fontSize: "clamp(2.5rem, 5vw, 4rem)",
+                    marginBottom: "20px",
+                    fontWeight: "700",
+                    letterSpacing: "-0.03em",
+                    lineHeight: "1.1"
+                  }}>
+                    Remote Control Made <br /> Simple & Secure
+                  </Title>
+                  <Paragraph style={{
+                    fontSize: "clamp(1rem, 2vw, 1.25rem)",
+                    color: "rgba(255,255,255,0.7)",
+                    maxWidth: "650px",
+                    margin: "0 auto 50px",
+                    lineHeight: "1.6",
+                    fontWeight: "400"
+                  }}>
+                    Connect securely to any computer anywhere in the world with FLYDESK's powerful remote desktop solution.
+                  </Paragraph>
+                </div>
 
-               
 
-                <div style={{
+
+                <div className="col" style={{
                   background: "rgba(255,255,255,0.03)",
                   backdropFilter: "blur(10px)",
                   borderRadius: "12px",
@@ -1597,11 +1599,11 @@ function App() {
                   boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
                   border: "1px solid rgba(255,255,255,0.05)"
                 }}>
-                  <Title level={3} style={{ 
-                    color: "white", 
+                  <Title level={3} style={{
+                    color: "white",
                     marginBottom: "25px",
                     fontWeight: "600",
-                    fontSize: "24px" 
+                    fontSize: "24px"
                   }}>
                     <Space>
                       <LinkOutlined style={{ color: "#00BFFF" }} />
@@ -1609,8 +1611,8 @@ function App() {
                     </Space>
                   </Title>
 
-                  <Paragraph style={{ 
-                    color: "rgba(255,255,255,0.7)", 
+                  <Paragraph style={{
+                    color: "rgba(255,255,255,0.7)",
                     marginBottom: "25px",
                     fontSize: "15px"
                   }}>
@@ -1656,6 +1658,7 @@ function App() {
               </div>
             </section>
 
+
             {/* Secure Remote Access with FlyDesk Section */}
             <section style={{
               padding: "100px 0",
@@ -1683,7 +1686,9 @@ function App() {
                   height: "80px",
                   margin: "0 auto 30px",
                   borderRadius: "20px",
-                  background: "linear-gradient(135deg, #0f0f0f 0%, #111111 100%)",
+                  // background: "linear-gradient(135deg, #0f0f0f 0%, #111111 100%)",
+                  background: 'linear-gradient(135deg, #00BFFF 0%, #8B5CF6 100%)',
+
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1691,14 +1696,14 @@ function App() {
                   transform: "perspective(800px) rotateX(10deg)",
                   padding: "15px"
                 }}>
-                  <img 
-                    src="/flydesk12.png" 
-                    alt="Logo" 
-                    style={{ 
+                  <img
+                    src="/flydesk12.png"
+                    alt="Logo"
+                    style={{
                       width: "120%",
                       height: "100%",
                       objectFit: "contain"
-                    }} 
+                    }}
                   />
                 </div>
 
@@ -1719,32 +1724,32 @@ function App() {
                   margin: "0 auto 40px",
                   lineHeight: "1.6"
                 }}>
-                  Your computer remains completely secure until you download and authorize the FlyDesk app. 
-                  Once installed, you'll receive a unique 6-digit session code that you can share with trusted users. 
-                  When someone enters this code, you'll get an explicit "Accept or Reject" prompt, giving you full 
-                  control over access. No authorization, no access—it's that simple. Need to end the session? 
+                  Your computer remains completely secure until you download and authorize the FlyDesk app.
+                  Once installed, you'll receive a unique 6-digit session code that you can share with trusted users.
+                  When someone enters this code, you'll get an explicit "Accept or Reject" prompt, giving you full
+                  control over access. No authorization, no access—it's that simple. Need to end the session?
                   Just close the app and all remote connections will terminate instantly. Your security is always in your hands.
                 </Paragraph>
                 <a href="https://remotedesk-downloads.s3.ap-south-1.amazonaws.com/RemoteDeskApp+Setup+1.0.0.exe">
-                <Button
-                  type="primary"
-                  size="large"
-                  icon={<DownloadOutlined />}
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<DownloadOutlined />}
 
-                  // onClick={showCodeInput}
-                  style={{
-                    height: "56px",
-                    padding: "0 40px",
-                    fontSize: "18px",
-                    fontWeight: "600",
-                    background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)",
-                    borderColor: "transparent",
-                    borderRadius: "28px",
-                    boxShadow: "0 5px 20px rgba(0,128,255,0.4)"
-                  }}
-                >
-                  FLYDESK APP
-                </Button>
+                    // onClick={showCodeInput}
+                    style={{
+                      height: "56px",
+                      padding: "0 40px",
+                      fontSize: "18px",
+                      fontWeight: "600",
+                      background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)",
+                      borderColor: "transparent",
+                      borderRadius: "28px",
+                      boxShadow: "0 5px 20px rgba(0,128,255,0.4)"
+                    }}
+                  >
+                    FLYDESK APP
+                  </Button>
                 </a>
               </div>
             </section>
@@ -1766,11 +1771,11 @@ function App() {
                       background: "#13151A",
                       border: "1px solid rgba(255,255,255,0.1)"
                     }}>
-                      <video 
-                        src="Images/video.mp4" 
-                        autoPlay 
-                        loop 
-                        muted 
+                      <video
+                        src="Images/video.mp4"
+                        autoPlay
+                        loop
+                        muted
                         playsInline
                         style={{
                           width: "100%",
@@ -1796,7 +1801,7 @@ function App() {
                       marginBottom: "30px",
                       lineHeight: "1.6"
                     }}>
-                      New to remote desktop technology? Watch our introductory video to learn the basics. 
+                      New to remote desktop technology? Watch our introductory video to learn the basics.
                       This short tutorial covers how to connect to remote computers, transfer files,
                       and troubleshoot common issues in just a few minutes.
                     </Paragraph>
@@ -1840,7 +1845,7 @@ function App() {
             </section>
 
             {/* Pizeonfly Advertisement Section with Framer-style UI */}
-            <section style={{
+            {/* <section style={{
               padding: "80px 0",
               background: `url('Images/pizeonfly.png')`,
               backgroundSize: "contain",
@@ -1849,18 +1854,16 @@ function App() {
               position: "relative",
               overflow: "hidden"
             }}>
-              {/* Overlay for better text readability */}
               <div style={{
                 position: "absolute",
                 top: 0,
                 left: 0,
                 width: "100%",
                 height: "100%",
-                background: "rgba(0, 0, 0, 0.7)",
+                background: "rgba(0, 0, 0, 0.9)",
                 zIndex: 0
               }}></div>
-              
-              {/* Decorative Elements */}
+
               <div style={{
                 position: "absolute",
                 top: "-50px",
@@ -1868,7 +1871,7 @@ function App() {
                 width: "200px",
                 height: "200px",
                 borderRadius: "50%",
-                background: "rgba(0,183,255,0.07)",
+                background: "rgba(0, 183, 255, 0)",
                 filter: "blur(50px)",
                 zIndex: 0
               }}></div>
@@ -1931,7 +1934,6 @@ function App() {
                     </div>
                   </Col>
                   <Col xs={24} md={12}>
-                    {/* Plugin/Template showcase */}
                     <div style={{
                       display: "grid",
                       gridTemplateColumns: "1fr 1fr",
@@ -1955,18 +1957,16 @@ function App() {
                             width: "40px",
                             height: "40px",
                             borderRadius: "8px",
-                            // background: index % 4 === 0 ? "#4285F4" : 
-                            //           index % 4 === 1 ? "#45A29E" : 
-                            //           index % 4 === 2 ? "#000" : "#95BF47",
+                            
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             color: "#fff",
                             fontSize: "18px"
                           }}>
-                            {index % 4 === 0 ? <img src="Images/socialmedia.png" style={{ width: "40px", height: "40px" }} alt="Social Media Marketing" /> : 
-                             index % 4 === 1 ? <img src="Images/seo.png" style={{ width: "40px", height: "40px" }} alt="Search Engine Optimization" /> : 
-                             index % 4 === 2 ? <img src="Images/website.png" style={{ width: "40px", height: "40px" }} alt="Web Design & Development" /> : <img src="Images/mobile.png" style={{ width: "40px", height: "40px" }} alt="Mobile App Development" />}
+                            {index % 4 === 0 ? <img src="Images/socialmedia.png" style={{ width: "40px", height: "40px" }} alt="Social Media Marketing" /> :
+                              index % 4 === 1 ? <img src="Images/seo.png" style={{ width: "40px", height: "40px" }} alt="Search Engine Optimization" /> :
+                                index % 4 === 2 ? <img src="Images/website.png" style={{ width: "40px", height: "40px" }} alt="Web Design & Development" /> : <img src="Images/mobile.png" style={{ width: "40px", height: "40px" }} alt="Mobile App Development" />}
                           </div>
                           <Text style={{ color: "#fff", fontSize: "14px", fontWeight: "500" }}>
                             {plugin}
@@ -1977,50 +1977,97 @@ function App() {
                   </Col>
                 </Row>
               </div>
-            </section>
+            </section> */}
 
             {/* Our Partner Section */}
             <section style={{
-              padding: "80px 0",
-              background: "#000",
-              position: "relative"
+              padding: "100px 0",
+              background: "linear-gradient(180deg, #000 0%, #0a0a0a 100%)",
+              position: "relative",
+              overflow: "hidden"
             }}>
-              <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px" }}>
-                <Title level={2} style={{
-                  color: "#fff",
+              {/* Animated background elements */}
+              <div style={{
+                position: "absolute",
+                width: "300px",
+                height: "300px",
+                borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(65,105,225,0.08) 0%, rgba(0,0,0,0) 70%)",
+                top: "-50px",
+                left: "-100px",
+                zIndex: 0
+              }} />
+              <div style={{
+                position: "absolute",
+                width: "400px",
+                height: "400px",
+                borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(0,191,255,0.05) 0%, rgba(0,0,0,0) 70%)",
+                bottom: "-100px",
+                right: "-150px",
+                zIndex: 0
+              }} />
+              
+              <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", position: "relative", zIndex: 1 }}>
+                <div style={{
                   textAlign: "center",
-                  marginBottom: "50px",
-                  fontSize: "36px",
-                  fontWeight: "600",
-                  letterSpacing: "-0.02em"
+                  marginBottom: "70px"
                 }}>
-                  Our Partners
-                </Title>
+                  <div style={{ 
+                    display: "inline-block",
+                    padding: "6px 16px",
+                    borderRadius: "30px",
+                    background: "rgba(65,105,225,0.1)",
+                    marginBottom: "20px"
+                  }}>
+                    <Text style={{ color: "#4169e1", fontSize: "14px", fontWeight: "500" }}>
+                      Trusted Partners
+                    </Text>
+                  </div>
+                  <Title level={2} style={{
+                    color: "#fff",
+                    textAlign: "center",
+                    fontSize: "42px",
+                    fontWeight: "700",
+                    letterSpacing: "-0.02em",
+                    marginBottom: "20px"
+                  }}>
+                    Our Partners
+                  </Title>
+                  <Text style={{ 
+                    color: "rgba(255,255,255,0.7)", 
+                    fontSize: "18px", 
+                    maxWidth: "600px", 
+                    margin: "0 auto",
+                    lineHeight: "1.6"
+                  }}>
+                    We collaborate with industry leaders to deliver exceptional service and value
+                  </Text>
+                </div>
 
                 <div style={{
                   display: "flex",
-                  overflowX: "auto",
-                  gap: "20px",
-                  paddingBottom: "20px",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none"
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  gap: "30px",
+                  padding: "0 10px"
                 }}>
                   {[
                     {
-                      name: "Pizeonfly", 
-                      desc: "Website Design & Digital Marketing", 
+                      name: "Pizeonfly",
+                      desc: "Website Design & Digital Marketing",
                       color: "#4169e1",
                       note: "Transforming businesses with stunning websites and effective digital marketing strategies. Specializing in custom web solutions and growth-driven campaigns."
                     },
                     {
-                      name: "A2Z Globix", 
-                      desc: "Tour and Travel Services", 
+                      name: "A2Z Globix",
+                      desc: "Tour and Travel Services",
                       color: "#00BFFF",
                       note: "Your gateway to worldwide destinations. Offering personalized travel packages, corporate bookings, and exclusive international tour experiences."
                     },
                     {
-                      name: "First India Credit", 
-                      desc: "Loan & Credit Services", 
+                      name: "First India Credit",
+                      desc: "Loan & Credit Services",
                       color: "#FFC107",
                       note: "Empowering individuals and businesses with accessible financial solutions. Providing personal loans, business credit, and specialized financial services."
                     },
@@ -2032,59 +2079,68 @@ function App() {
                     // }
                   ].map((company, index) => (
                     <div key={index} style={{
-                      minWidth: "300px",
-                      background: "#13151A",
-                      borderRadius: "12px",
+                      width: "330px",
+                      background: "rgba(19, 21, 26, 0.7)",
+                      borderRadius: "16px",
                       overflow: "hidden",
-                      border: "1px solid rgba(255,255,255,0.1)"
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
+                      backdropFilter: "blur(10px)",
+                      transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                      ":hover": {
+                        transform: "translateY(-8px)",
+                        boxShadow: "0 30px 60px rgba(0,0,0,0.4)"
+                      }
                     }}>
                       <div style={{
-                        height: "140px",
-                        background: `linear-gradient(135deg, ${company.color} 0%, #000 100%)`,
+                        height: "160px",
+                        background: `linear-gradient(135deg, 0%, rgba(0,0,0,0.8) 100%)`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         position: "relative",
                         overflow: "hidden"
                       }}>
+                        <div style={{
+                          position: "absolute",
+                          width: "120%",
+                          height: "120%",
+                          background:"white",
+                          // background: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                          opacity: 0.1
+                        }} />
+                        
                         {company.name === "Pizeonfly" ? (
-                          <img 
-                            src="Images/pizeonfly.png" 
-                            alt="Pizeonfly" 
+                          <img
+                            src="Images/pizeonfly.png"
+                            alt="Pizeonfly"
                             style={{
-                              maxWidth: "70%",
-                              maxHeight: "70%",
-                              objectFit: "contain"
+                              maxWidth: "75%",
+                              maxHeight: "75%",
+                              objectFit: "contain",
+                              filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.2))"
                             }}
                           />
-                        ) : (
-                          <Text style={{ color: "#fff", fontSize: "24px", fontWeight: "700" }}>
-                            {/* {company.name} */}
-                          </Text>
-                        )}
-                        {company.name === "A2Z Globix" ? (
-                          <img 
-                            src="Images/a2z.png" 
-                            alt="A2Z Globix" 
+                        ) : company.name === "A2Z Globix" ? (
+                          <img
+                            src="Images/a2z.png"
+                            alt="A2Z Globix"
                             style={{
-                              maxWidth: "70%",
-                              maxHeight: "70%",
-                              objectFit: "contain"
+                              maxWidth: "75%",
+                              maxHeight: "75%",
+                              objectFit: "contain",
+                              filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.2))"
                             }}
                           />
-                        ) : (
-                          <Text style={{ color: "#fff", fontSize: "24px", fontWeight: "700" }}>
-                            {/* {company.name} */}
-                          </Text>
-                        )}
-                        {company.name === "First India Credit" ? (
-                          <img 
-                            src="Images/fic.png" 
-                            alt="First India Credit" 
+                        ) : company.name === "First India Credit" ? (
+                          <img
+                            src="Images/fic.png"
+                            alt="First India Credit"
                             style={{
-                              maxWidth: "70%",
-                              maxHeight: "70%",
-                              objectFit: "contain"
+                              maxWidth: "75%",
+                              maxHeight: "75%",
+                              objectFit: "contain",
+                              filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.2))"
                             }}
                           />
                         ) : (
@@ -2094,28 +2150,62 @@ function App() {
                         )}
                       </div>
 
-                      <div style={{ padding: "20px" }}>
-                        <Text style={{ color: "#fff", fontWeight: "500", display: "block", marginBottom: "8px" }}>
-                          {company.name}
-                        </Text>
-                        <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", display: "block", marginBottom: "10px" }}>
+                      <div style={{ padding: "25px" }}>
+                        <div style={{ 
+                          display: "flex", 
+                          alignItems: "center", 
+                          marginBottom: "10px",
+                          gap: "6px"
+                        }}>
+                          <div style={{ 
+                            width: "8px", 
+                            height: "8px", 
+                            borderRadius: "50%", 
+                            background: company.color 
+                          }}></div>
+                          <Text style={{ 
+                            color: "#fff", 
+                            fontWeight: "600", 
+                            fontSize: "18px" 
+                          }}>
+                            {company.name}
+                          </Text>
+                        </div>
+                        <Text style={{ 
+                          color: company.color, 
+                          fontSize: "14px", 
+                          fontWeight: "500",
+                          display: "block", 
+                          marginBottom: "12px",
+                          opacity: 0.9
+                        }}>
                           {company.desc}
                         </Text>
-                        <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", display: "block", marginBottom: "15px", lineHeight: "1.5" }}>
+                        <Text style={{ 
+                          color: "rgba(255,255,255,0.7)", 
+                          fontSize: "14px", 
+                          display: "block", 
+                          marginBottom: "22px", 
+                          lineHeight: "1.6"
+                        }}>
                           {company.note}
                         </Text>
                         <Button
                           type="default"
-                          href={company.name === "Pizeonfly" ? "https://pizeonfly.com" : 
-                                company.name === "A2Z Globix" ? "https://a2zglobix.com" :
-                                company.name === "First India Credit" ? "https://firstindiacredit.com" :
+                          href={company.name === "Pizeonfly" ? "https://pizeonfly.com" :
+                            company.name === "A2Z Globix" ? "https://a2zglobix.com" :
+                              company.name === "First India Credit" ? "https://firstindiacredit.com" :
                                 "https://indiaeducates.com"}
                           target="_blank"
                           style={{
                             width: "100%",
-                            background: "rgba(255,255,255,0.05)",
-                            borderColor: "rgba(255,255,255,0.1)",
-                            color: "#fff"
+                            background: `linear-gradient(to right, ${company.color}22, ${company.color}44)`,
+                            borderColor: `${company.color}66`,
+                            color: "#fff",
+                            height: "40px",
+                            borderRadius: "8px",
+                            fontWeight: "500",
+                            transition: "all 0.3s ease"
                           }}
                         >
                           Learn More
@@ -2127,7 +2217,7 @@ function App() {
               </div>
             </section>
 
-            
+
           </main>
 
           {/* Footer */}
@@ -2141,13 +2231,14 @@ function App() {
               <Row gutter={[40, 40]} justify="space-between">
                 <Col xs={24} sm={12} md={6}>
                   <div style={{ marginBottom: "20px" }}>
-                    <img src="Images/flydesk1.png" style={{ height: "30px" }} alt="FLYDESK" />
+                    <img src="Images/flydesk1.png" style={{ height: "40px" }} alt="FLYDESK" />
+
                   </div>
                   <Text style={{ color: "rgba(255,255,255,0.6)", display: "block", marginBottom: "15px", lineHeight: "1.6" }}>
                     The most reliable remote desktop solution for professionals.
                   </Text>
                 </Col>
-                
+
                 {["Product", "Resources", "Company"].map((category, index) => (
                   <Col key={index} xs={24} sm={12} md={5}>
                     <Title level={5} style={{ color: "#fff", marginBottom: "20px", fontSize: "16px" }}>
@@ -2218,9 +2309,9 @@ function App() {
             <Button key="cancel" onClick={() => setCodeInputVisible(false)}>
               Cancel
             </Button>,
-            <Button 
-              key="submit" 
-              type="primary" 
+            <Button
+              key="submit"
+              type="primary"
               onClick={handleCodeSubmit}
               style={{ background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)", borderColor: "transparent", marginTop: "10px" }}
             >
@@ -2229,7 +2320,7 @@ function App() {
           ]}
           styles={{
             mask: { backdropFilter: 'blur(5px)', background: 'rgba(0,0,0,0.45)' },
-            content: { 
+            content: {
               borderRadius: '12px',
               boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
               border: '1px solid #333'
@@ -2244,10 +2335,10 @@ function App() {
               placeholder="6-digit code"
               maxLength={6}
               size="large"
-              style={{ 
-                width: "100%", 
-                textAlign: "center", 
-                letterSpacing: "0.5em", 
+              style={{
+                width: "100%",
+                textAlign: "center",
+                letterSpacing: "0.5em",
                 fontSize: "24px",
                 marginBottom: "16px",
                 padding: "10px 12px",
@@ -2272,7 +2363,7 @@ function App() {
         closeIcon={<CloseOutlined style={{ color: "rgba(255,255,255,0.65)" }} />}
         styles={{
           mask: { backdropFilter: 'blur(5px)', background: 'rgba(0,0,0,0.75)' },
-          content: { 
+          content: {
             borderRadius: '12px',
             boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
             border: '1px solid #333',
@@ -2282,7 +2373,7 @@ function App() {
           body: { padding: '0' }
         }}
       >
-        <div style={{ 
+        <div style={{
           position: "relative",
           width: "100%",
           height: "0",
