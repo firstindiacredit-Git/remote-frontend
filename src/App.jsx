@@ -1506,7 +1506,7 @@ function App() {
 
 
 
-              <a href="https://remotedesk-downloads.s3.ap-south-1.amazonaws.com/RemoteDeskApp+Setup+1.0.0.exe">
+              <a href="https://remotedesk-downloads.s3.ap-south-1.amazonaws.com/FlyDeskApp+Setup+1.0.0.exe">
                 <Button
                   type="primary"
                   icon={<DownloadOutlined />}
