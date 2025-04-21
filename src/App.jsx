@@ -1730,7 +1730,7 @@ function App() {
                   control over access. No authorization, no access—it's that simple. Need to end the session?
                   Just close the app and all remote connections will terminate instantly. Your security is always in your hands.
                 </Paragraph>
-                <a href="https://remotedesk-downloads.s3.ap-south-1.amazonaws.com/RemoteDeskApp+Setup+1.0.0.exe">
+                <a href="https://remotedesk-downloads.s3.ap-south-1.amazonaws.com/FlyDeskApp+Setup+1.0.0.exe">
                   <Button
                     type="primary"
                     size="large"
@@ -2007,13 +2007,13 @@ function App() {
                 right: "-150px",
                 zIndex: 0
               }} />
-              
+
               <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", position: "relative", zIndex: 1 }}>
                 <div style={{
                   textAlign: "center",
                   marginBottom: "70px"
                 }}>
-                  <div style={{ 
+                  <div style={{
                     display: "inline-block",
                     padding: "6px 16px",
                     borderRadius: "30px",
@@ -2034,10 +2034,10 @@ function App() {
                   }}>
                     Our Partners
                   </Title>
-                  <Text style={{ 
-                    color: "rgba(255,255,255,0.7)", 
-                    fontSize: "18px", 
-                    maxWidth: "600px", 
+                  <Text style={{
+                    color: "rgba(255,255,255,0.7)",
+                    fontSize: "18px",
+                    maxWidth: "600px",
                     margin: "0 auto",
                     lineHeight: "1.6"
                   }}>
@@ -2105,11 +2105,11 @@ function App() {
                           position: "absolute",
                           width: "120%",
                           height: "120%",
-                          background:"white",
+                          background: "white",
                           // background: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
                           opacity: 0.1
                         }} />
-                        
+
                         {company.name === "Pizeonfly" ? (
                           <img
                             src="Images/pizeonfly.png"
@@ -2151,41 +2151,41 @@ function App() {
                       </div>
 
                       <div style={{ padding: "25px" }}>
-                        <div style={{ 
-                          display: "flex", 
-                          alignItems: "center", 
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
                           marginBottom: "10px",
                           gap: "6px"
                         }}>
-                          <div style={{ 
-                            width: "8px", 
-                            height: "8px", 
-                            borderRadius: "50%", 
-                            background: company.color 
+                          <div style={{
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            background: company.color
                           }}></div>
-                          <Text style={{ 
-                            color: "#fff", 
-                            fontWeight: "600", 
-                            fontSize: "18px" 
+                          <Text style={{
+                            color: "#fff",
+                            fontWeight: "600",
+                            fontSize: "18px"
                           }}>
                             {company.name}
                           </Text>
                         </div>
-                        <Text style={{ 
-                          color: company.color, 
-                          fontSize: "14px", 
+                        <Text style={{
+                          color: company.color,
+                          fontSize: "14px",
                           fontWeight: "500",
-                          display: "block", 
+                          display: "block",
                           marginBottom: "12px",
                           opacity: 0.9
                         }}>
                           {company.desc}
                         </Text>
-                        <Text style={{ 
-                          color: "rgba(255,255,255,0.7)", 
-                          fontSize: "14px", 
-                          display: "block", 
-                          marginBottom: "22px", 
+                        <Text style={{
+                          color: "rgba(255,255,255,0.7)",
+                          fontSize: "14px",
+                          display: "block",
+                          marginBottom: "22px",
                           lineHeight: "1.6"
                         }}>
                           {company.note}
