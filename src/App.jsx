@@ -14,7 +14,9 @@ import {
   Modal,
   message,
   Alert,
-  ConfigProvider
+  ConfigProvider,
+  Card,
+  Empty
 } from "antd";
 import {
   DesktopOutlined,
@@ -33,7 +35,8 @@ import {
   TeamOutlined,
   EyeOutlined,
   VideoCameraOutlined,
-  StopOutlined
+  StopOutlined,
+  DeleteOutlined
 } from "@ant-design/icons";
 
 const { Header, Content, Footer } = Layout;
@@ -41,7 +44,8 @@ const { Title, Text, Paragraph } = Typography;
 
 // Create socket with reconnection options
 const socket = io(
-  "https://flydesk.pizeonfly.com",
+  // "https://flydesk.pizeonfly.com",
+  "http://192.168.29.140:8080",
   {
     reconnection: true,
     reconnectionAttempts: Infinity,
@@ -80,6 +84,20 @@ function App() {
   const [recording, setRecording] = useState(false);
   const [recordedVideo, setRecordedVideo] = useState(null);
   const [recordingModalVisible, setRecordingModalVisible] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [connectByPasswordVisible, setConnectByPasswordVisible] = useState(false);
+  const [hostPassword, setHostPassword] = useState("");
+  const [machineIdInput, setMachineIdInput] = useState("");
+  const [savedHosts, setSavedHosts] = useState(() => {
+    // Load saved hosts from localStorage
+    try {
+      const saved = localStorage.getItem('savedHosts');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Failed to load saved hosts", e);
+      return [];
+    }
+  });
 
   useEffect(() => {
     // Socket connection listeners
@@ -280,6 +298,38 @@ function App() {
       }]);
     });
 
+    // Add password-related event listeners
+    socket.on("password-set-notification", (data) => {
+      message.success("Password set successfully for this connection!");
+      
+      // Save this host in localStorage for future connections
+      const newSavedHost = {
+        hostId: data.hostId,
+        machineId: data.machineId,
+        name: currentHostInfo?.name || "Unknown Host",
+        lastConnected: new Date().toISOString()
+      };
+      
+      setSavedHosts(prev => {
+        // Update if exists, add if not
+        const updated = prev.some(h => h.machineId === data.machineId) 
+          ? prev.map(h => h.machineId === data.machineId ? {...h, ...newSavedHost} : h)
+          : [...prev, newSavedHost];
+        
+        // Save to localStorage
+        localStorage.setItem('savedHosts', JSON.stringify(updated));
+        return updated;
+      });
+    });
+    
+    socket.on("password-auth-response", (data) => {
+      if (data.success) {
+        message.success("Password accepted!");
+      } else {
+        message.error(data.message || "Password authentication failed");
+      }
+    });
+
     return () => {
       // Cleanup
       socket.off("host-available");
@@ -291,8 +341,15 @@ function App() {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
       clearInterval(pingInterval);
+      socket.off("password-set-notification");
+      socket.off("password-auth-response");
     };
   }, [hostId, modifierKeys]);
+
+  // Save hosts to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('savedHosts', JSON.stringify(savedHosts));
+  }, [savedHosts]);
 
   const connectToHost = (hostInfo) => {
     setHostId(hostInfo.id);
@@ -490,6 +547,49 @@ function App() {
     setRecordingModalVisible(false);
   };
 
+  // Add a new function to handle connecting with password
+  const handlePasswordConnect = () => {
+    if (!machineIdInput || !hostPassword) {
+      message.error("Please enter both Machine ID and Password");
+      return;
+    }
+    
+    socket.emit("connect-with-password", {
+      machineId: machineIdInput,
+      password: hostPassword
+    });
+    
+    setConnectByPasswordVisible(false);
+    setMachineIdInput("");
+    setHostPassword("");
+  };
+
+  // Add this to show the password connect modal
+  const showConnectByPassword = () => {
+    setConnectByPasswordVisible(true);
+  };
+
+  // Add a helper to connect to a saved host
+  const connectToSavedHost = (host) => {
+    setMachineIdInput(host.machineId);
+    setConnectByPasswordVisible(true);
+  };
+
+  // With confirmation dialog
+  const deleteSavedHost = (machineId) => {
+    console.log('Deleting host with machine ID:', machineId);
+    console.log('Current savedHosts:', savedHosts);
+    
+    if (window.confirm('Are you sure you want to delete this connection?')) {
+      const updatedHosts = savedHosts.filter(host => host.machineId !== machineId);
+      console.log('Updated savedHosts:', updatedHosts);
+      
+      setSavedHosts(updatedHosts);
+      localStorage.setItem('savedHosts', JSON.stringify(updatedHosts));
+      message.success('Connection deleted successfully');
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#000' }}>
       {/* Inject global styles */}
@@ -590,7 +690,7 @@ function App() {
             }}>
               <canvas
                 ref={canvasRef}
-                width="1580"
+                width="1280"
                 height="720"
                 onMouseMove={handleMouseMove}
                 onMouseDown={handleMouseClick}
@@ -1371,6 +1471,83 @@ function App() {
               </div>
             </section>
 
+            {/* Saved Connections Section */}
+            <section style={{
+              padding: "60px 0",
+              background: "#0a0a0a",
+              position: "relative"
+            }}>
+              <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 20px" }}>
+                <Title level={2} style={{ color: "white", marginBottom: 40, textAlign: "center" }}>
+                  Saved Connections
+                </Title>
+                
+                <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 20 }}>
+                  {savedHosts.length > 0 ? (
+                    savedHosts.map((host, index) => (
+                      <Card 
+                        key={host.machineId || index}
+                        style={{ 
+                          width: 300, 
+                          background: "rgba(20, 20, 20, 0.8)",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                          borderRadius: 12
+                        }}
+                        headStyle={{ color: "white" }}
+                        title={host.name}
+                        actions={[
+                          <Button 
+                            key="connect"
+                            type="primary" 
+                            onClick={() => connectToSavedHost(host)}
+                          >
+                            Connect
+                          </Button>,
+                          <Button 
+                            key="delete"
+                            type="primary" 
+                            danger
+                            onClick={() => deleteSavedHost(host.machineId)}
+                          >
+                            Delete
+                          </Button>
+                        ]}
+                      >
+                        <p style={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                          Last connected: {new Date(host.lastConnected).toLocaleDateString()}
+                        </p>
+                        <p style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: "12px", wordBreak: "break-all" }}>
+                          Machine ID: {host.machineId ? host.machineId.substring(0, 8) + '...' : 'Unknown'}
+                        </p>
+                      </Card>
+                    ))
+                  ) : (
+                    <Empty 
+                      description={<span style={{ color: "rgba(255, 255, 255, 0.5)" }}>No saved connections</span>}
+                      image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                    />
+                  )}
+                </div>
+                
+                <div style={{ textAlign: "center", marginTop: 30 }}>
+                  <Button 
+                    type="primary"
+                    icon={<LockOutlined />}
+                    onClick={showConnectByPassword}
+                    style={{
+                      height: "50px",
+                      fontSize: "16px",
+                      padding: "0 30px",
+                      background: "rgba(0, 102, 255, 0.2)",
+                      borderColor: "rgba(0, 102, 255, 0.4)",
+                      color: "#0066FF"
+                    }}
+                  >
+                    Connect with Password
+                  </Button>
+                </div>
+              </div>
+            </section>
 
           </main>
 
@@ -1584,6 +1761,40 @@ function App() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Password Connection Modal */}
+      <Modal
+        title="Connect with Password"
+        open={connectByPasswordVisible}
+        onCancel={() => setConnectByPasswordVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setConnectByPasswordVisible(false)}>
+            Cancel
+          </Button>,
+          <Button key="submit" type="primary" onClick={handlePasswordConnect}>
+            Connect
+          </Button>
+        ]}
+        centered
+      >
+        <div style={{ padding: "20px 0" }}>
+          <Input
+            placeholder="Machine ID"
+            value={machineIdInput}
+            onChange={(e) => setMachineIdInput(e.target.value)}
+            style={{ marginBottom: 16 }}
+          />
+          <Input.Password
+            placeholder="Access Password"
+            value={hostPassword}
+            onChange={(e) => setHostPassword(e.target.value)}
+            style={{ marginBottom: 16 }}
+          />
+          <Text type="secondary">
+            Enter the machine ID and password provided by the host.
+          </Text>
+        </div>
       </Modal>
     </div>
   );
