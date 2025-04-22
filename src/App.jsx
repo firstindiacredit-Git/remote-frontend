@@ -502,7 +502,8 @@ function App() {
           height: '100vh',
           display: 'flex',
           flexDirection: 'column',
-          background: '#000'
+          background: '#000',
+          overflow: 'hidden'
         }}>
           <div style={{
             display: 'flex',
@@ -576,7 +577,8 @@ function App() {
             alignItems: 'center',
             background: '#000',
             position: 'relative',
-            padding: '20px'
+            padding: '20px',
+            overflow: 'hidden'
           }}>
             <div style={{
               position: 'relative',
