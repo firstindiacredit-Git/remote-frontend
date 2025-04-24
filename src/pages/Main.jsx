@@ -87,20 +87,8 @@ function Main() {
     const [recording, setRecording] = useState(false);
     const [recordedVideo, setRecordedVideo] = useState(null);
     const [recordingModalVisible, setRecordingModalVisible] = useState(false);
-    const [passwordModalVisible, setPasswordModalVisible] = useState(false);
-    const [connectByPasswordVisible, setConnectByPasswordVisible] = useState(false);
-    const [hostPassword, setHostPassword] = useState("");
-    const [machineIdInput, setMachineIdInput] = useState("");
-    const [savedHosts, setSavedHosts] = useState(() => {
-        // Load saved hosts from localStorage
-        try {
-            const saved = localStorage.getItem('savedHosts');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            console.error("Failed to load saved hosts", e);
-            return [];
-        }
-    });
+   
+  
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
 
@@ -303,38 +291,6 @@ function Main() {
             }]);
         });
 
-        // Add password-related event listeners
-        socket.on("password-set-notification", (data) => {
-            message.success("Password set successfully for this connection!");
-
-            // Save this host in localStorage for future connections
-            const newSavedHost = {
-                hostId: data.hostId,
-                machineId: data.machineId,
-                name: currentHostInfo?.name || "Unknown Host",
-                lastConnected: new Date().toISOString()
-            };
-
-            setSavedHosts(prev => {
-                // Update if exists, add if not
-                const updated = prev.some(h => h.machineId === data.machineId)
-                    ? prev.map(h => h.machineId === data.machineId ? { ...h, ...newSavedHost } : h)
-                    : [...prev, newSavedHost];
-
-                // Save to localStorage
-                localStorage.setItem('savedHosts', JSON.stringify(updated));
-                return updated;
-            });
-        });
-
-        socket.on("password-auth-response", (data) => {
-            if (data.success) {
-                message.success("Password accepted!");
-            } else {
-                message.error(data.message || "Password authentication failed");
-            }
-        });
-
         return () => {
             // Cleanup
             socket.off("host-available");
@@ -346,30 +302,10 @@ function Main() {
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('keyup', handleKeyUp);
             clearInterval(pingInterval);
-            socket.off("password-set-notification");
-            socket.off("password-auth-response");
         };
     }, [hostId, modifierKeys]);
 
-    // Save hosts to localStorage when they change
-    useEffect(() => {
-        localStorage.setItem('savedHosts', JSON.stringify(savedHosts));
-    }, [savedHosts]);
-
-    const connectToHost = (hostInfo) => {
-        setHostId(hostInfo.id);
-        setConnected(true);
-        setFullScreenMode(true);
-        setCurrentHostInfo(hostInfo);
-
-        socket.emit("connect-to-host", hostInfo.id);
-        socket.emit("request-screen", {
-            to: hostInfo.id,
-            from: socket.id
-        });
-
-        setKeyboardActive(true);
-    };
+   
 
     // Mouse handlers
     const handleMouseMove = (e) => {
@@ -552,48 +488,6 @@ function Main() {
         setRecordingModalVisible(false);
     };
 
-    // Add a new function to handle connecting with password
-    const handlePasswordConnect = () => {
-        if (!machineIdInput || !hostPassword) {
-            message.error("Please enter both Machine ID and Password");
-            return;
-        }
-
-        socket.emit("connect-with-password", {
-            machineId: machineIdInput,
-            password: hostPassword
-        });
-
-        setConnectByPasswordVisible(false);
-        setMachineIdInput("");
-        setHostPassword("");
-    };
-
-    // Add this to show the password connect modal
-    const showConnectByPassword = () => {
-        setConnectByPasswordVisible(true);
-    };
-
-    // Add a helper to connect to a saved host
-    const connectToSavedHost = (host) => {
-        setMachineIdInput(host.machineId);
-        setConnectByPasswordVisible(true);
-    };
-
-    // With confirmation dialog
-    const deleteSavedHost = (machineId) => {
-        console.log('Deleting host with machine ID:', machineId);
-        console.log('Current savedHosts:', savedHosts);
-
-        if (window.confirm('Are you sure you want to delete this connection?')) {
-            const updatedHosts = savedHosts.filter(host => host.machineId !== machineId);
-            console.log('Updated savedHosts:', updatedHosts);
-
-            setSavedHosts(updatedHosts);
-            localStorage.setItem('savedHosts', JSON.stringify(updatedHosts));
-            message.success('Connection deleted successfully');
-        }
-    };
 
     // Add this effect to check for logged in user
     useEffect(() => {
@@ -621,6 +515,7 @@ function Main() {
         setUser(null);
         message.success('Logged out successfully');
     };
+
 
     return (
         <div style={{ minHeight: '100vh', background: '#000' }}>
@@ -1191,141 +1086,6 @@ function Main() {
                             </div>
                         </section>
 
-                        {/* Pizeonfly Advertisement Section with Framer-style UI */}
-                        {/* <section style={{
-              padding: "80px 0",
-              background: `url('Images/pizeonfly.png')`,
-              backgroundSize: "contain",
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "center",
-              position: "relative",
-              overflow: "hidden"
-            }}>
-              <div style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                background: "rgba(0, 0, 0, 0.9)",
-                zIndex: 0
-              }}></div>
-
-              <div style={{
-                position: "absolute",
-                top: "-50px",
-                left: "-50px",
-                width: "200px",
-                height: "200px",
-                borderRadius: "50%",
-                background: "rgba(0, 183, 255, 0)",
-                filter: "blur(50px)",
-                zIndex: 0
-              }}></div>
-              <div style={{
-                position: "absolute",
-                bottom: "-80px",
-                right: "10%",
-                width: "300px",
-                height: "300px",
-                borderRadius: "50%",
-                background: "rgba(0,106,255,0.05)",
-                filter: "blur(50px)",
-                zIndex: 0
-              }}></div>
-
-              <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", position: "relative", zIndex: 1 }}>
-                <Row gutter={[50, 40]} align="middle">
-                  <Col xs={24} md={12}>
-                    <div style={{ color: "#fff" }}>
-                      <Title level={2} style={{
-                        color: "#fff",
-                        marginBottom: "25px",
-                        fontSize: "36px",
-                        fontWeight: "600",
-                        lineHeight: "1.2",
-                        letterSpacing: "-0.02em"
-                      }}>
-                        Website Design and Digital Marketing Agency
-                      </Title>
-                      <Paragraph style={{
-                        fontSize: "16px",
-                        marginBottom: "30px",
-                        lineHeight: "1.7",
-                        color: "rgba(255, 255, 255, 0.7)"
-                      }}>
-                        At Pizeonfly, we don't just design websites, we build digital experiences
-                        that elevate your brand and drive lasting success. Our team of experts creates
-                        stunning websites that convert visitors into customers.
-                      </Paragraph>
-                      <Space size="large">
-                        <a href="https://pizeonfly.com" target="_blank">
-                          <Button
-                            type="primary"
-                            size="large"
-                            style={{
-                              background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)",
-                              borderColor: "transparent",
-                              height: "46px",
-                              padding: "0 28px",
-                              fontSize: "16px",
-                              fontWeight: "500",
-                              borderRadius: "8px",
-                              boxShadow: "0 6px 16px rgba(0,106,255,0.3)"
-                            }}
-                          >
-                            Learn More
-                          </Button>
-                        </a>
-                      </Space>
-                    </div>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <div style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "15px"
-                    }}>
-                      {["Social Media Marketing", "Search Engine Optimization", "Web Design & Development", "Mobile App Development"].map((plugin, index) => (
-                        <div key={index} style={{
-                          background: "rgba(255,255,255,0.05)",
-                          borderRadius: "10px",
-                          padding: "20px",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "10px",
-                          backdropFilter: "blur(5px)",
-                          height: "120px"
-                        }}>
-                          <div style={{
-                            width: "40px",
-                            height: "40px",
-                            borderRadius: "8px",
-                            
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            fontSize: "18px"
-                          }}>
-                            {index % 4 === 0 ? <img src="Images/socialmedia.png" style={{ width: "40px", height: "40px" }} alt="Social Media Marketing" /> :
-                              index % 4 === 1 ? <img src="Images/seo.png" style={{ width: "40px", height: "40px" }} alt="Search Engine Optimization" /> :
-                                index % 4 === 2 ? <img src="Images/website.png" style={{ width: "40px", height: "40px" }} alt="Web Design & Development" /> : <img src="Images/mobile.png" style={{ width: "40px", height: "40px" }} alt="Mobile App Development" />}
-                          </div>
-                          <Text style={{ color: "#fff", fontSize: "14px", fontWeight: "500" }}>
-                            {plugin}
-                          </Text>
-                        </div>
-                      ))}
-                    </div>
-                  </Col>
-                </Row>
-              </div>
-            </section> */}
-
                         {/* Our Partner Section */}
                         <section style={{
                             padding: "100px 0",
@@ -1564,84 +1324,6 @@ function Main() {
                             </div>
                         </section>
 
-                        {/* Saved Connections Section */}
-                        <section style={{
-                            padding: "60px 0",
-                            background: "#0a0a0a",
-                            position: "relative"
-                        }}>
-                            <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 20px" }}>
-                                <Title level={2} style={{ color: "white", marginBottom: 40, textAlign: "center" }}>
-                                    Saved Connections
-                                </Title>
-
-                                <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 20 }}>
-                                    {savedHosts.length > 0 ? (
-                                        savedHosts.map((host, index) => (
-                                            <Card
-                                                key={host.machineId || index}
-                                                style={{
-                                                    width: 300,
-                                                    background: "rgba(20, 20, 20, 0.8)",
-                                                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                                                    borderRadius: 12
-                                                }}
-                                                headStyle={{ color: "white" }}
-                                                title={host.name}
-                                                actions={[
-                                                    <Button
-                                                        key="connect"
-                                                        type="primary"
-                                                        onClick={() => connectToSavedHost(host)}
-                                                    >
-                                                        Connect
-                                                    </Button>,
-                                                    <Button
-                                                        key="delete"
-                                                        type="primary"
-                                                        danger
-                                                        onClick={() => deleteSavedHost(host.machineId)}
-                                                    >
-                                                        Delete
-                                                    </Button>
-                                                ]}
-                                            >
-                                                <p style={{ color: "rgba(255, 255, 255, 0.7)" }}>
-                                                    Last connected: {new Date(host.lastConnected).toLocaleDateString()}
-                                                </p>
-                                                <p style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: "12px", wordBreak: "break-all" }}>
-                                                    Machine ID: {host.machineId ? host.machineId.substring(0, 8) + '...' : 'Unknown'}
-                                                </p>
-                                            </Card>
-                                        ))
-                                    ) : (
-                                        <Empty
-                                            description={<span style={{ color: "rgba(255, 255, 255, 0.5)" }}>No saved connections</span>}
-                                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                        />
-                                    )}
-                                </div>
-
-                                <div style={{ textAlign: "center", marginTop: 30 }}>
-                                    <Button
-                                        type="primary"
-                                        icon={<LockOutlined />}
-                                        onClick={showConnectByPassword}
-                                        style={{
-                                            height: "50px",
-                                            fontSize: "16px",
-                                            padding: "0 30px",
-                                            background: "rgba(0, 102, 255, 0.2)",
-                                            borderColor: "rgba(0, 102, 255, 0.4)",
-                                            color: "#0066FF"
-                                        }}
-                                    >
-                                        Connect with Password
-                                    </Button>
-                                </div>
-                            </div>
-                        </section>
-
                     </main>
 
                     {/* Footer */}
@@ -1854,40 +1536,6 @@ function Main() {
                         </div>
                     </div>
                 )}
-            </Modal>
-
-            {/* Password Connection Modal */}
-            <Modal
-                title="Connect with Password"
-                open={connectByPasswordVisible}
-                onCancel={() => setConnectByPasswordVisible(false)}
-                footer={[
-                    <Button key="cancel" onClick={() => setConnectByPasswordVisible(false)}>
-                        Cancel
-                    </Button>,
-                    <Button key="submit" type="primary" onClick={handlePasswordConnect}>
-                        Connect
-                    </Button>
-                ]}
-                centered
-            >
-                <div style={{ padding: "20px 0" }}>
-                    <Input
-                        placeholder="Machine ID"
-                        value={machineIdInput}
-                        onChange={(e) => setMachineIdInput(e.target.value)}
-                        style={{ marginBottom: 16 }}
-                    />
-                    <Input.Password
-                        placeholder="Access Password"
-                        value={hostPassword}
-                        onChange={(e) => setHostPassword(e.target.value)}
-                        style={{ marginBottom: 16 }}
-                    />
-                    <Text type="secondary">
-                        Enter the machine ID and password provided by the host.
-                    </Text>
-                </div>
             </Modal>
         </div>
     );
