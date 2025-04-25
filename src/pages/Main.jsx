@@ -102,7 +102,7 @@ function Main() {
     const checkUser = () => {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
-        
+
         if (userData) {
             try {
                 setUser(JSON.parse(userData));
@@ -133,6 +133,16 @@ function Main() {
 
         socket.on("disconnect", (reason) => {
             setConnectionStatus(`Disconnected: ${reason}. Reconnecting...`);
+
+            // If we're in fullscreen mode, exit it
+            if (fullScreenMode) {
+                setHostId("");
+                setConnected(false);
+                setKeyboardActive(false);
+                setFullScreenMode(false);
+                setCurrentHostInfo(null);
+                message.error("Connection to host was lost. Attempting to reconnect...");
+            }
         });
 
         socket.io.on("reconnect_attempt", (attempt) => {
@@ -244,6 +254,9 @@ function Main() {
             setHostId("");
             setConnected(false);
             setKeyboardActive(false);
+            setFullScreenMode(false);
+            setCurrentHostInfo(null);
+            message.info("Disconnected from host");
         });
 
         socket.on("code-accepted", (hostInfo) => {
@@ -253,7 +266,11 @@ function Main() {
         });
 
         socket.on("code-rejected", (data) => {
-            message.error(data.message || "Invalid session code");
+            if (data.errorType === "client_not_active") {
+                showClientNotActiveNotification(data.message);
+            } else {
+                message.error(data.message || "Invalid session code");
+            }
             setPendingConnection(false);
         });
 
@@ -320,18 +337,22 @@ function Main() {
             message.success("Permanent access set up successfully!");
             fetchSavedHosts(); // Refresh the list
         });
-        
+
         socket.on("permanent-access-setup-failed", (data) => {
             message.error(data.message || "Failed to set up permanent access");
         });
-        
+
         socket.on("permanent-access-error", (data) => {
-            message.error(data.message || "Permanent access error");
+            if (data.errorType === "client_not_active") {
+                showClientNotActiveNotification(data.message);
+            } else {
+                message.error(data.message || "Permanent access error");
+            }
         });
-        
+
         socket.on("permanent-access-accepted", (hostInfo) => {
             message.success("Connected using permanent access!");
-            
+
             setHostId(hostInfo.hostId);
             setConnected(true);
             setFullScreenMode(true);
@@ -339,13 +360,13 @@ function Main() {
                 id: hostInfo.hostId,
                 name: hostInfo.hostName
             });
-            
+
             socket.emit("connect-to-host", hostInfo.hostId);
             socket.emit("request-screen", {
                 to: hostInfo.hostId,
                 from: socket.id
             });
-            
+
             setKeyboardActive(true);
         });
 
@@ -561,11 +582,11 @@ function Main() {
         try {
             const token = localStorage.getItem('token');
             if (!token) return;
-            
+
             const response = await axios.get('http://192.168.29.140:8080/api/permanent-access/list', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             if (response.data.success) {
                 setSavedHosts(response.data.data);
                 console.log("Saved hosts loaded:", response.data.data);
@@ -587,19 +608,19 @@ function Main() {
             message.error("Please enter a valid password (minimum 4 characters)");
             return;
         }
-        
+
         const user = JSON.parse(localStorage.getItem('user'));
         if (!user || !user._id) {
             message.error("You must be logged in to set up permanent access");
             return;
         }
-        
+
         socket.emit("setup-permanent-access", {
             hostId,
             password: permanentAccessPassword,
             userId: user._id
         });
-        
+
         setShowPermanentAccessModal(false);
         setPermanentAccessPassword("");
     };
@@ -610,17 +631,53 @@ function Main() {
             message.error("Please select a host and enter your access password");
             return;
         }
-        
+
         const user = JSON.parse(localStorage.getItem('user'));
         if (!user || !user._id) {
             message.error("You must be logged in to use permanent access");
             return;
         }
-        
+
         socket.emit("connect-with-permanent-access", {
             hostMachineId: selectedSavedHost.hostMachineId,
             userId: user._id,
             accessPassword: permanentAccessPasswordInput
+        });
+    };
+
+
+    // Add this state to your component:
+    const [modalConfig, setModalConfig] = useState({
+        visible: false,
+        title: '',
+        content: null
+    });
+
+    // Replace the current showClientNotActiveNotification function with this fixed version:
+    const showClientNotActiveNotification = (messageText) => {
+        // Clear any existing modals
+        Modal.destroyAll();
+        
+        // Use message (not message2) to show the error
+        message.error({
+            content: "Client is not active right now, please open the app",
+            duration: 5,
+            style: {
+                marginTop: '20px'
+            }
+        });
+        
+        // Open a proper modal that doesn't use the static function
+        setModalConfig({
+            visible: true,
+            title: 'Host App Not Running',
+            content: (
+                <div>
+                    <p>{messageText}</p>
+                    <p>The FLYDESK Host application must be running on the computer you want to connect to.</p>
+                    <p>Please make sure the app is open and running on the target computer before trying to connect.</p>
+                </div>
+            )
         });
     };
 
@@ -680,7 +737,7 @@ function Main() {
                             >
                                 Exit Session
                             </Button>
-                            
+
                             {/* Three dots dropdown menu */}
                             <Dropdown menu={{
                                 items: [
@@ -824,7 +881,7 @@ function Main() {
                                     Download FLYDESK App
                                 </Button>
                             </a>
-                            
+
                             {user ? (
                                 <Dropdown menu={{
                                     items: [
@@ -1559,14 +1616,14 @@ function Main() {
                         <Text style={{ display: "block", textAlign: "center", color: "rgba(255,255,255,0.45)" }}>
                             Enter the 6-digit code provided by the host
                         </Text>
-                        
+
                         {/* Add saved connections section */}
                         {user && (
                             <div style={{ marginTop: 32, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 24 }}>
                                 <Typography.Title level={4} style={{ color: "#fff", marginBottom: 16 }}>
                                     Connect to Saved Computers
                                 </Typography.Title>
-                                
+
                                 {savedHosts && savedHosts.length > 0 ? (
                                     <>
                                         <Select
@@ -1584,7 +1641,7 @@ function Main() {
                                                 </Select.Option>
                                             ))}
                                         </Select>
-                                        
+
                                         {selectedSavedHost && (
                                             <>
                                                 <Input.Password
@@ -1593,7 +1650,7 @@ function Main() {
                                                     onChange={(e) => setPermanentAccessPasswordInput(e.target.value)}
                                                     style={{ marginBottom: 16 }}
                                                 />
-                                                
+
                                                 <Button
                                                     type="primary"
                                                     block
@@ -1713,9 +1770,9 @@ function Main() {
                     <Button key="cancel" onClick={() => setShowPermanentAccessModal(false)}>
                         Cancel
                     </Button>,
-                    <Button 
-                        key="submit" 
-                        type="primary" 
+                    <Button
+                        key="submit"
+                        type="primary"
                         onClick={setupPermanentAccess}
                         style={{
                             background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)",
@@ -1741,6 +1798,29 @@ function Main() {
                 <Typography.Text type="secondary">
                     Password must be at least 4 characters
                 </Typography.Text>
+            </Modal>
+
+            {/* // Add this custom modal to your JSX (in the return statement, next to your other modals): */}
+            <Modal
+                title={modalConfig.title}
+                open={modalConfig.visible}
+                onCancel={() => setModalConfig({ ...modalConfig, visible: false })}
+                footer={[
+                    <Button key="ok" type="primary" onClick={() => setModalConfig({ ...modalConfig, visible: false })}>
+                        Got it
+                    </Button>
+                ]}
+                centered
+                styles={{
+                    mask: { backdropFilter: 'blur(5px)', background: 'rgba(0,0,0,0.45)' },
+                    content: {
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                        border: '1px solid #333'
+                    }
+                }}
+            >
+                {modalConfig.content}
             </Modal>
         </div>
     );
