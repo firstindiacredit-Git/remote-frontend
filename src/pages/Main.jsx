@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from 'react-router-dom';
 import io from "socket.io-client";
 import 'antd/dist/reset.css';
+import axios from "axios"
 import {
     Layout,
     Button,
@@ -18,7 +19,8 @@ import {
     ConfigProvider,
     Card,
     Empty,
-    Dropdown
+    Dropdown,
+    Select
 } from "antd";
 import {
     DesktopOutlined,
@@ -87,10 +89,32 @@ function Main() {
     const [recording, setRecording] = useState(false);
     const [recordedVideo, setRecordedVideo] = useState(null);
     const [recordingModalVisible, setRecordingModalVisible] = useState(false);
-   
-  
+    const [showPermanentAccessModal, setShowPermanentAccessModal] = useState(false);
+    const [permanentAccessPassword, setPermanentAccessPassword] = useState("");
+    const [savedHosts, setSavedHosts] = useState([]);
+    const [selectedSavedHost, setSelectedSavedHost] = useState(null);
+    const [permanentAccessPasswordInput, setPermanentAccessPasswordInput] = useState("");
+
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
+
+    const checkUser = () => {
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        if (userData) {
+            try {
+                setUser(JSON.parse(userData));
+            } catch (error) {
+                console.error('Error parsing user data', error);
+                setUser(null);
+            }
+        }
+    };
+
+    useEffect(() => {
+        checkUser();
+    }, []);
 
     useEffect(() => {
         // Socket connection listeners
@@ -291,6 +315,39 @@ function Main() {
             }]);
         });
 
+        socket.on("permanent-access-setup-success", (data) => {
+            message.success("Permanent access set up successfully!");
+            fetchSavedHosts(); // Refresh the list
+        });
+        
+        socket.on("permanent-access-setup-failed", (data) => {
+            message.error(data.message || "Failed to set up permanent access");
+        });
+        
+        socket.on("permanent-access-error", (data) => {
+            message.error(data.message || "Permanent access error");
+        });
+        
+        socket.on("permanent-access-accepted", (hostInfo) => {
+            message.success("Connected using permanent access!");
+            
+            setHostId(hostInfo.hostId);
+            setConnected(true);
+            setFullScreenMode(true);
+            setCurrentHostInfo({
+                id: hostInfo.hostId,
+                name: hostInfo.hostName
+            });
+            
+            socket.emit("connect-to-host", hostInfo.hostId);
+            socket.emit("request-screen", {
+                to: hostInfo.hostId,
+                from: socket.id
+            });
+            
+            setKeyboardActive(true);
+        });
+
         return () => {
             // Cleanup
             socket.off("host-available");
@@ -302,10 +359,12 @@ function Main() {
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('keyup', handleKeyUp);
             clearInterval(pingInterval);
+            socket.off("permanent-access-setup-success");
+            socket.off("permanent-access-setup-failed");
+            socket.off("permanent-access-error");
+            socket.off("permanent-access-accepted");
         };
     }, [hostId, modifierKeys]);
-
-   
 
     // Mouse handlers
     const handleMouseMove = (e) => {
@@ -488,26 +547,6 @@ function Main() {
         setRecordingModalVisible(false);
     };
 
-
-    // Add this effect to check for logged in user
-    useEffect(() => {
-        const checkUser = () => {
-            const token = localStorage.getItem('token');
-            const userData = localStorage.getItem('user');
-            
-            if (userData) {
-                try {
-                    setUser(JSON.parse(userData));
-                } catch (error) {
-                    console.error('Error parsing user data', error);
-                    setUser(null);
-                }
-            }
-        };
-        
-        checkUser();
-    }, []);
-    
     // Add logout function
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -516,6 +555,73 @@ function Main() {
         message.success('Logged out successfully');
     };
 
+    // Add function to fetch saved hosts
+    const fetchSavedHosts = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            
+            const response = await axios.get('http://192.168.29.140:8080/api/permanent-access/list', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            if (response.data.success) {
+                setSavedHosts(response.data.data);
+                console.log("Saved hosts loaded:", response.data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching saved hosts:", error);
+        }
+    };
+
+    // Add this to useEffect to load saved hosts when component mounts
+    useEffect(() => {
+        checkUser();
+        fetchSavedHosts();
+    }, []);
+
+    // Add function to set up permanent access
+    const setupPermanentAccess = () => {
+        if (!hostId || !permanentAccessPassword || permanentAccessPassword.length < 4) {
+            message.error("Please enter a valid password (minimum 4 characters)");
+            return;
+        }
+        
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user._id) {
+            message.error("You must be logged in to set up permanent access");
+            return;
+        }
+        
+        socket.emit("setup-permanent-access", {
+            hostId,
+            password: permanentAccessPassword,
+            userId: user._id
+        });
+        
+        setShowPermanentAccessModal(false);
+        setPermanentAccessPassword("");
+    };
+
+    // Add function to connect using permanent access
+    const connectWithPermanentAccess = () => {
+        if (!selectedSavedHost || !permanentAccessPasswordInput) {
+            message.error("Please select a host and enter your access password");
+            return;
+        }
+        
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user._id) {
+            message.error("You must be logged in to use permanent access");
+            return;
+        }
+        
+        socket.emit("connect-with-permanent-access", {
+            hostMachineId: selectedSavedHost.hostMachineId,
+            userId: user._id,
+            accessPassword: permanentAccessPasswordInput
+        });
+    };
 
     return (
         <div style={{ minHeight: '100vh', background: '#000' }}>
@@ -571,6 +677,26 @@ function Main() {
                                 }}
                             >
                                 {recording ? 'Stop Recording' : 'Record Screen'}
+                            </Button>
+
+                            {/* Add Permanent Access button */}
+                            <Button
+                                icon={<LockOutlined />}
+                                onClick={() => setShowPermanentAccessModal(true)}
+                                style={{
+                                    background: "rgba(40, 167, 69, 0.2)",
+                                    borderColor: "rgba(40, 167, 69, 0.5)",
+                                    color: "#28a745",
+                                    fontWeight: 500,
+                                    borderRadius: '6px',
+                                    height: '36px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginRight: '10px'
+                                }}
+                            >
+                                Set Permanent Access
                             </Button>
 
                             {/* Existing disconnect button */}
@@ -1048,21 +1174,6 @@ function Main() {
                                             and troubleshoot common issues in just a few minutes.
                                         </Paragraph>
                                         <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                                            {/* <Button
-                        type="primary"
-                        size="large"
-                        icon={<RightOutlined />}
-                        style={{
-                          height: "46px",
-                          background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)",
-                          borderColor: "transparent",
-                          width: "100%",
-                          textAlign: "left",
-                          borderRadius: "8px"
-                        }}
-                      >
-                        Start Fundamentals
-                      </Button> */}
                                             <Button
                                                 type="default"
                                                 size="large"
@@ -1213,7 +1324,7 @@ function Main() {
                                                     width: "120%",
                                                     height: "120%",
                                                     background: "white",
-                                                    // background: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                                                    // background: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
                                                     opacity: 0.1
                                                 }} />
 
@@ -1338,7 +1449,6 @@ function Main() {
                                 <Col xs={24} sm={12} md={6}>
                                     <div style={{ marginBottom: "20px" }}>
                                         <img src="Images/flydesk1.png" style={{ height: "40px" }} alt="FLYDESK" />
-
                                     </div>
                                     <Text style={{ color: "rgba(255,255,255,0.6)", display: "block", marginBottom: "15px", lineHeight: "1.6" }}>
                                         The most reliable remote desktop solution for professionals.
@@ -1455,6 +1565,68 @@ function Main() {
                         <Text style={{ display: "block", textAlign: "center", color: "rgba(255,255,255,0.45)" }}>
                             Enter the 6-digit code provided by the host
                         </Text>
+                        
+                        {/* Add saved connections section */}
+                        {user && (
+                            <div style={{ marginTop: 32, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 24 }}>
+                                <Typography.Title level={4} style={{ color: "#fff", marginBottom: 16 }}>
+                                    Connect to Saved Computers
+                                </Typography.Title>
+                                
+                                {savedHosts && savedHosts.length > 0 ? (
+                                    <>
+                                        <Select
+                                            placeholder="Select a saved computer"
+                                            style={{ width: '100%', marginBottom: 16 }}
+                                            dropdownStyle={{ backgroundColor: '#2a2a2a', color: 'white' }}
+                                            onChange={(value) => {
+                                                const host = savedHosts.find(h => h._id === value);
+                                                setSelectedSavedHost(host);
+                                            }}
+                                        >
+                                            {savedHosts.map(host => (
+                                                <Select.Option key={host._id} value={host._id}>
+                                                    {host.label || 'My Computer'}
+                                                </Select.Option>
+                                            ))}
+                                        </Select>
+                                        
+                                        {selectedSavedHost && (
+                                            <>
+                                                <Input.Password
+                                                    placeholder="Enter permanent access password"
+                                                    value={permanentAccessPasswordInput}
+                                                    onChange={(e) => setPermanentAccessPasswordInput(e.target.value)}
+                                                    style={{ marginBottom: 16 }}
+                                                />
+                                                
+                                                <Button
+                                                    type="primary"
+                                                    block
+                                                    onClick={connectWithPermanentAccess}
+                                                    style={{
+                                                        background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)",
+                                                        borderColor: "transparent",
+                                                        height: "45px"
+                                                    }}
+                                                >
+                                                    Connect with Permanent Access
+                                                </Button>
+                                            </>
+                                        )}
+                                    </>
+                                ) : (
+                                    <Empty
+                                        description={
+                                            <span style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                                No saved computers yet
+                                            </span>
+                                        }
+                                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                    />
+                                )}
+                            </div>
+                        )}
                     </div>
                 </Modal>
             </ConfigProvider>
@@ -1536,6 +1708,45 @@ function Main() {
                         </div>
                     </div>
                 )}
+            </Modal>
+
+            {/* Add this modal for setting up permanent access */}
+            <Modal
+                title="Set Up Permanent Access"
+                open={showPermanentAccessModal}
+                onCancel={() => setShowPermanentAccessModal(false)}
+                footer={[
+                    <Button key="cancel" onClick={() => setShowPermanentAccessModal(false)}>
+                        Cancel
+                    </Button>,
+                    <Button 
+                        key="submit" 
+                        type="primary" 
+                        onClick={setupPermanentAccess}
+                        style={{
+                            background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)",
+                            borderColor: "transparent"
+                        }}
+                    >
+                        Save Access
+                    </Button>
+                ]}
+                width={400}
+                style={{ top: 20 }}
+                bodyStyle={{ padding: "24px" }}
+            >
+                <p style={{ marginBottom: 16 }}>
+                    Create a permanent access password for this computer. You'll be able to connect directly next time without requiring approval.
+                </p>
+                <Input.Password
+                    placeholder="Enter a secure password"
+                    value={permanentAccessPassword}
+                    onChange={(e) => setPermanentAccessPassword(e.target.value)}
+                    style={{ marginBottom: 8 }}
+                />
+                <Typography.Text type="secondary">
+                    Password must be at least 4 characters
+                </Typography.Text>
             </Modal>
         </div>
     );
