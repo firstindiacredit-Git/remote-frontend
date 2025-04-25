@@ -41,7 +41,8 @@ import {
     VideoCameraOutlined,
     StopOutlined,
     DeleteOutlined,
-    LogoutOutlined
+    LogoutOutlined,
+    MoreOutlined
 } from "@ant-design/icons";
 
 const { Header, Content, Footer } = Layout;
@@ -658,48 +659,7 @@ function Main() {
                         </Space>
 
                         <Space>
-                            {/* Add recording button */}
-                            <Button
-                                type={recording ? "danger" : "primary"}
-                                icon={recording ? <StopOutlined /> : <VideoCameraOutlined />}
-                                onClick={recording ? stopRecording : startRecording}
-                                style={{
-                                    background: recording ? 'rgba(255, 77, 79, 0.2)' : 'rgba(0, 183, 255, 0.2)',
-                                    borderColor: recording ? 'rgba(255, 77, 79, 0.5)' : 'rgba(0, 183, 255, 0.5)',
-                                    color: recording ? '#ff4d4f' : '#00b7ff',
-                                    fontWeight: 500,
-                                    borderRadius: '6px',
-                                    height: '36px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    marginRight: '10px'
-                                }}
-                            >
-                                {recording ? 'Stop Recording' : 'Record Screen'}
-                            </Button>
-
-                            {/* Add Permanent Access button */}
-                            <Button
-                                icon={<LockOutlined />}
-                                onClick={() => setShowPermanentAccessModal(true)}
-                                style={{
-                                    background: "rgba(40, 167, 69, 0.2)",
-                                    borderColor: "rgba(40, 167, 69, 0.5)",
-                                    color: "#28a745",
-                                    fontWeight: 500,
-                                    borderRadius: '6px',
-                                    height: '36px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    marginRight: '10px'
-                                }}
-                            >
-                                Set Permanent Access
-                            </Button>
-
-                            {/* Existing disconnect button */}
+                            {/* Exit Session button */}
                             <Button
                                 type="primary"
                                 danger
@@ -720,6 +680,40 @@ function Main() {
                             >
                                 Exit Session
                             </Button>
+                            
+                            {/* Three dots dropdown menu */}
+                            <Dropdown menu={{
+                                items: [
+                                    {
+                                        key: '1',
+                                        label: 'Record Screen',
+                                        icon: <VideoCameraOutlined />,
+                                        onClick: recording ? stopRecording : startRecording,
+                                    },
+                                    {
+                                        key: '2',
+                                        label: 'Set Permanent Access',
+                                        icon: <LockOutlined />,
+                                        onClick: () => setShowPermanentAccessModal(true),
+                                    },
+                                ],
+                            }} placement="bottomRight">
+                                <Button
+                                    style={{
+                                        background: 'rgba(255, 255, 255, 0.1)',
+                                        borderColor: 'rgba(255, 255, 255, 0.05)',
+                                        color: '#fff',
+                                        fontWeight: 500,
+                                        borderRadius: '6px',
+                                        height: '36px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        backdropFilter: 'blur(10px)'
+                                    }}
+                                    icon={<MoreOutlined />}
+                                />
+                            </Dropdown>
                         </Space>
                     </div>
 
