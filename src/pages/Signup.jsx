@@ -24,7 +24,7 @@ const Signup = () => {
       // Remove confirmPassword before sending to API
       const { confirmPassword, ...signupData } = values;
       
-      const response = await axios.post('http://localhost:8080/api/register', signupData);
+      const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/register`, signupData);
       
       if (response.data.success) {
         message.success('Account created successfully!');

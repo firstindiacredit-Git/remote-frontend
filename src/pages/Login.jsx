@@ -13,7 +13,7 @@ const Login = () => {
   const onFinish = async (values) => {
     try {
       setLoading(true);
-      const response = await axios.post('http://localhost:8080/api/login', values);
+      const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/login`, values);
       
       if (response.data.success) {
         // Save user token to localStorage
