@@ -42,7 +42,8 @@ import {
     StopOutlined,
     DeleteOutlined,
     LogoutOutlined,
-    MoreOutlined
+    MoreOutlined,
+    EditOutlined
 } from "@ant-design/icons";
 
 const { Header, Content, Footer } = Layout;
@@ -50,8 +51,7 @@ const { Title, Text, Paragraph } = Typography;
 
 // Create socket with reconnection options
 const socket = io(
-    // "https://flydesk.pizeonfly.com",
-    "http://192.168.29.140:8080",
+    `${import.meta.env.VITE_BASE_URL}`,
     {
         reconnection: true,
         reconnectionAttempts: Infinity,
@@ -95,6 +95,12 @@ function Main() {
     const [savedHosts, setSavedHosts] = useState([]);
     const [selectedSavedHost, setSelectedSavedHost] = useState(null);
     const [permanentAccessPasswordInput, setPermanentAccessPasswordInput] = useState("");
+    const [showEditLabelModal, setShowEditLabelModal] = useState(false);
+    const [selectedHostForLabel, setSelectedHostForLabel] = useState(null);
+    const [newLabel, setNewLabel] = useState("");
+    const [permanentAccessLabel, setPermanentAccessLabel] = useState("");
+    const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+    const [hostToDelete, setHostToDelete] = useState(null);
 
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
@@ -133,7 +139,7 @@ function Main() {
 
         socket.on("disconnect", (reason) => {
             setConnectionStatus(`Disconnected: ${reason}. Reconnecting...`);
-
+            
             // If we're in fullscreen mode, exit it
             if (fullScreenMode) {
                 setHostId("");
@@ -254,8 +260,8 @@ function Main() {
             setHostId("");
             setConnected(false);
             setKeyboardActive(false);
-            setFullScreenMode(false);
-            setCurrentHostInfo(null);
+            setFullScreenMode(false); // Add this line to exit fullscreen mode
+            setCurrentHostInfo(null); // Also reset host info
             message.info("Disconnected from host");
         });
 
@@ -370,6 +376,17 @@ function Main() {
             setKeyboardActive(true);
         });
 
+        socket.on("host-unavailable", (data) => {
+            if (data.hostId === hostId && fullScreenMode) {
+                message.error("Host is no longer available.");
+                setHostId("");
+                setConnected(false);
+                setKeyboardActive(false);
+                setFullScreenMode(false);
+                setCurrentHostInfo(null);
+            }
+        });
+
         return () => {
             // Cleanup
             socket.off("host-available");
@@ -385,6 +402,7 @@ function Main() {
             socket.off("permanent-access-setup-failed");
             socket.off("permanent-access-error");
             socket.off("permanent-access-accepted");
+            socket.off("host-unavailable");
         };
     }, [hostId, modifierKeys]);
 
@@ -583,7 +601,7 @@ function Main() {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            const response = await axios.get('http://192.168.29.140:8080/api/permanent-access/list', {
+            const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/api/permanent-access/list`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -618,11 +636,13 @@ function Main() {
         socket.emit("setup-permanent-access", {
             hostId,
             password: permanentAccessPassword,
-            userId: user._id
+            userId: user._id,
+            label: permanentAccessLabel.trim() || undefined
         });
 
         setShowPermanentAccessModal(false);
         setPermanentAccessPassword("");
+        setPermanentAccessLabel("");
     };
 
     // Add function to connect using permanent access
@@ -679,6 +699,80 @@ function Main() {
                 </div>
             )
         });
+    };
+
+    // Add this function to handle editing labels
+    const updateHostLabel = async () => {
+        if (!selectedHostForLabel || !newLabel.trim()) {
+            message.error("Please enter a valid label");
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/api/permanent-access/update-label/${selectedHostForLabel._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ label: newLabel })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                message.success("Label updated successfully");
+                fetchSavedHosts(); // Refresh the list
+                setShowEditLabelModal(false);
+                setNewLabel("");
+                setSelectedHostForLabel(null);
+            } else {
+                message.error(data.message || "Failed to update label");
+            }
+        } catch (error) {
+            console.error("Error updating label:", error);
+            message.error("Failed to update label");
+        }
+    };
+
+    // Add this function to handle deleting saved hosts
+    const deleteHostAccess = async () => {
+        if (!hostToDelete) {
+            return;
+        }
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/api/permanent-access/delete/${hostToDelete._id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                message.success("Access deleted successfully");
+                fetchSavedHosts(); // Refresh the list
+                
+                // Reset states
+                setShowDeleteConfirmModal(false);
+                setHostToDelete(null);
+                
+                // If the deleted host was selected, clear that selection
+                if (selectedSavedHost && selectedSavedHost._id === hostToDelete._id) {
+                    setSelectedSavedHost(null);
+                    setPermanentAccessPasswordInput("");
+                }
+            } else {
+                message.error(data.message || "Failed to delete access");
+            }
+        } catch (error) {
+            console.error("Error deleting access:", error);
+            message.error("Failed to delete access");
+        }
     };
 
     return (
@@ -1629,15 +1723,47 @@ function Main() {
                                         <Select
                                             placeholder="Select a saved computer"
                                             style={{ width: '100%', marginBottom: 16 }}
-                                            dropdownStyle={{ backgroundColor: '#2a2a2a', color: 'white' }}
+                                            dropdownStyle={{ backgroundColor: '', color: '' }}
                                             onChange={(value) => {
                                                 const host = savedHosts.find(h => h._id === value);
                                                 setSelectedSavedHost(host);
                                             }}
+                                            dropdownRender={menu => (
+                                                <div>
+                                                    {menu}
+                                                </div>
+                                            )}
                                         >
                                             {savedHosts.map(host => (
                                                 <Select.Option key={host._id} value={host._id}>
-                                                    {host.label || 'My Computer'}
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span>{host.label || 'My Computer'}</span>
+                                                        <div>
+                                                            <Button 
+                                                                type="text" 
+                                                                size="small" 
+                                                                icon={<EditOutlined />} 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedHostForLabel(host);
+                                                                    setNewLabel(host.label || '');
+                                                                    setShowEditLabelModal(true);
+                                                                }}
+                                                                style={{ marginRight: '4px' }}
+                                                            />
+                                                            <Button 
+                                                                type="text" 
+                                                                size="small" 
+                                                                danger
+                                                                icon={<DeleteOutlined />} 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setHostToDelete(host);
+                                                                    setShowDeleteConfirmModal(true);
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
                                                 </Select.Option>
                                             ))}
                                         </Select>
@@ -1681,52 +1807,6 @@ function Main() {
                     </div>
                 </Modal>
             </ConfigProvider>
-
-            <Modal
-                title={null}
-                open={videoModalVisible}
-                onCancel={closeVideoModal}
-                footer={null}
-                centered
-                width="80%"
-                closeIcon={<CloseOutlined style={{ color: "rgba(255,255,255,0.65)" }} />}
-                styles={{
-                    mask: { backdropFilter: 'blur(5px)', background: 'rgba(0,0,0,0.75)' },
-                    content: {
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                        border: '1px solid #333',
-                        background: '#000',
-                        padding: '0'
-                    },
-                    body: { padding: '0' }
-                }}
-            >
-                <div style={{
-                    position: "relative",
-                    width: "100%",
-                    height: "0",
-                    paddingBottom: "56.25%", // 16:9 aspect ratio
-                    overflow: "hidden"
-                }}>
-                    <video
-                        src="Images/video.mp4"
-                        controls
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        style={{
-                            position: "absolute",
-                            top: "0",
-                            left: "0",
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "contain"
-                        }}
-                    />
-                </div>
-            </Modal>
 
             <Modal
                 title="Session Recording"
@@ -1789,6 +1869,12 @@ function Main() {
                 <p style={{ marginBottom: 16 }}>
                     Create a permanent access password for this computer. You'll be able to connect directly next time without requiring approval.
                 </p>
+                <Input
+                    placeholder="Enter a descriptive label (e.g. Home PC, Office Laptop)"
+                    value={permanentAccessLabel}
+                    onChange={(e) => setPermanentAccessLabel(e.target.value)}
+                    style={{ marginBottom: 16 }}
+                />
                 <Input.Password
                     placeholder="Enter a secure password"
                     value={permanentAccessPassword}
@@ -1821,6 +1907,89 @@ function Main() {
                 }}
             >
                 {modalConfig.content}
+            </Modal>
+
+            {/* Add this modal for editing labels (add it next to your other modals) */}
+            <Modal
+                title="Edit Computer Label"
+                open={showEditLabelModal}
+                onCancel={() => {
+                    setShowEditLabelModal(false);
+                    setNewLabel("");
+                    setSelectedHostForLabel(null);
+                }}
+                footer={[
+                    <Button key="cancel" onClick={() => {
+                        setShowEditLabelModal(false);
+                        setNewLabel("");
+                        setSelectedHostForLabel(null);
+                    }}>
+                        Cancel
+                    </Button>,
+                    <Button
+                        key="submit"
+                        type="primary"
+                        onClick={updateHostLabel}
+                        style={{
+                            background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)",
+                            borderColor: "transparent"
+                        }}
+                    >
+                        Save Label
+                    </Button>
+                ]}
+                width={400}
+                style={{ top: 20 }}
+                bodyStyle={{ padding: "24px" }}
+            >
+                <p style={{ marginBottom: 16 }}>
+                    Enter a custom label for this computer to help you identify it easily.
+                </p>
+                <Input
+                    placeholder="Enter a descriptive name"
+                    value={newLabel}
+                    onChange={(e) => setNewLabel(e.target.value)}
+                    style={{ marginBottom: 8 }}
+                />
+            </Modal>
+
+            {/* Add the delete confirmation modal (add alongside other modals) */}
+            <Modal
+                title="Delete Saved Computer"
+                open={showDeleteConfirmModal}
+                onCancel={() => {
+                    setShowDeleteConfirmModal(false);
+                    setHostToDelete(null);
+                }}
+                footer={[
+                    <Button 
+                        key="cancel" 
+                        onClick={() => {
+                            setShowDeleteConfirmModal(false);
+                            setHostToDelete(null);
+                        }}
+                    >
+                        Cancel
+                    </Button>,
+                    <Button
+                        key="delete"
+                        type="primary"
+                        danger
+                        onClick={deleteHostAccess}
+                    >
+                        Delete
+                    </Button>
+                ]}
+                width={400}
+                style={{ top: 20 }}
+                bodyStyle={{ padding: "24px" }}
+            >
+                <p style={{ marginBottom: 16 }}>
+                    Are you sure you want to delete access to "{hostToDelete?.label || 'My Computer'}"?
+                </p>
+                <p style={{ color: 'rgba(255,255,255,0.65)' }}>
+                    This action cannot be undone. You will need to set up permanent access again to connect to this computer.
+                </p>
             </Modal>
         </div>
     );
