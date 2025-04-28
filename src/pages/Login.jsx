@@ -22,6 +22,7 @@ const Login = () => {
         
         message.success('Login successful!');
         navigate('/');
+        window.location.reload();
       } else {
         message.error(response.data.message || 'Login failed');
       }
