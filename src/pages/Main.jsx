@@ -91,6 +91,10 @@ function Main() {
     const [connectByPasswordVisible, setConnectByPasswordVisible] = useState(false);
     const [hostPassword, setHostPassword] = useState("");
     const [machineIdInput, setMachineIdInput] = useState("");
+    const [permanentAccessModalVisible, setPermanentAccessModalVisible] = useState(false);
+    const [permanentAccessLabel, setPermanentAccessLabel] = useState("");
+    const [permanentAccessPassword, setPermanentAccessPassword] = useState("");
+    const [permanentAccessMachineId, setPermanentAccessMachineId] = useState("");
     const [savedHosts, setSavedHosts] = useState(() => {
         // Load saved hosts from localStorage
         try {
@@ -335,6 +339,39 @@ function Main() {
             }
         });
 
+        socket.on("permanent-access-set-notification", (data) => {
+            message.success(`Permanent access set successfully for ${data.computerName}!`);
+            
+            // Save this host in localStorage for future connections
+            const newSavedHost = {
+                hostId: data.hostId,
+                machineId: data.machineId,
+                name: data.computerName,
+                label: data.label,
+                lastConnected: new Date().toISOString(),
+                permanentAccess: true
+            };
+
+            setSavedHosts(prev => {
+                // Update if exists, add if not
+                const updated = prev.some(h => h.machineId === data.machineId)
+                    ? prev.map(h => h.machineId === data.machineId ? { ...h, ...newSavedHost } : h)
+                    : [...prev, newSavedHost];
+
+                // Save to localStorage
+                localStorage.setItem('savedHosts', JSON.stringify(updated));
+                return updated;
+            });
+        });
+
+        socket.on("permanent-access-auth-response", (data) => {
+            if (data.success) {
+                message.success("Permanent access authentication successful!");
+            } else {
+                message.error(data.message || "Permanent access authentication failed");
+            }
+        });
+
         return () => {
             // Cleanup
             socket.off("host-available");
@@ -348,6 +385,8 @@ function Main() {
             clearInterval(pingInterval);
             socket.off("password-set-notification");
             socket.off("password-auth-response");
+            socket.off("permanent-access-set-notification");
+            socket.off("permanent-access-auth-response");
         };
     }, [hostId, modifierKeys]);
 
@@ -569,9 +608,37 @@ function Main() {
         setHostPassword("");
     };
 
+    // Function to handle connecting with permanent access
+    const handlePermanentAccessConnect = () => {
+        if (!permanentAccessLabel || !permanentAccessPassword || !permanentAccessMachineId) {
+            message.error("Please enter all required fields");
+            return;
+        }
+
+        socket.emit("connect-with-permanent-access", {
+            machineId: permanentAccessMachineId,
+            label: permanentAccessLabel,
+            password: permanentAccessPassword
+        });
+
+        setPermanentAccessModalVisible(false);
+        setPermanentAccessLabel("");
+        setPermanentAccessPassword("");
+        setPermanentAccessMachineId("");
+    };
+
     // Add this to show the password connect modal
     const showConnectByPassword = () => {
         setConnectByPasswordVisible(true);
+    };
+
+    // Function to show permanent access modal
+    const showPermanentAccessModal = (host = null) => {
+        if (host) {
+            setPermanentAccessMachineId(host.machineId);
+            setPermanentAccessLabel(host.label || "");
+        }
+        setPermanentAccessModalVisible(true);
     };
 
     // Add a helper to connect to a saved host
@@ -1587,14 +1654,35 @@ function Main() {
                                                     borderRadius: 12
                                                 }}
                                                 headStyle={{ color: "white" }}
-                                                title={host.name}
+                                                title={
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span>{host.name}</span>
+                                                        {host.permanentAccess && (
+                                                            <Badge 
+                                                                count="PA" 
+                                                                style={{ 
+                                                                    backgroundColor: '#00BFFF',
+                                                                    fontSize: '10px',
+                                                                    fontWeight: 'bold'
+                                                                }} 
+                                                                title="Permanent Access"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                }
                                                 actions={[
                                                     <Button
                                                         key="connect"
                                                         type="primary"
-                                                        onClick={() => connectToSavedHost(host)}
+                                                        onClick={() => {
+                                                            if (host.permanentAccess) {
+                                                                showPermanentAccessModal(host);
+                                                            } else {
+                                                                connectToSavedHost(host);
+                                                            }
+                                                        }}
                                                     >
-                                                        Connect
+                                                        {host.permanentAccess ? 'Connect (PA)' : 'Connect'}
                                                     </Button>,
                                                     <Button
                                                         key="delete"
@@ -1609,6 +1697,11 @@ function Main() {
                                                 <p style={{ color: "rgba(255, 255, 255, 0.7)" }}>
                                                     Last connected: {new Date(host.lastConnected).toLocaleDateString()}
                                                 </p>
+                                                {host.label && (
+                                                    <p style={{ color: "rgba(0, 183, 255, 0.8)", fontSize: "14px", fontWeight: "500" }}>
+                                                        Label: {host.label}
+                                                    </p>
+                                                )}
                                                 <p style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: "12px", wordBreak: "break-all" }}>
                                                     Machine ID: {host.machineId ? host.machineId.substring(0, 8) + '...' : 'Unknown'}
                                                 </p>
@@ -1623,21 +1716,38 @@ function Main() {
                                 </div>
 
                                 <div style={{ textAlign: "center", marginTop: 30 }}>
-                                    <Button
-                                        type="primary"
-                                        icon={<LockOutlined />}
-                                        onClick={showConnectByPassword}
-                                        style={{
-                                            height: "50px",
-                                            fontSize: "16px",
-                                            padding: "0 30px",
-                                            background: "rgba(0, 102, 255, 0.2)",
-                                            borderColor: "rgba(0, 102, 255, 0.4)",
-                                            color: "#0066FF"
-                                        }}
-                                    >
-                                        Connect with Password
-                                    </Button>
+                                    <Space direction="vertical" size={16}>
+                                        <Button
+                                            type="primary"
+                                            icon={<LockOutlined />}
+                                            onClick={showConnectByPassword}
+                                            style={{
+                                                height: "50px",
+                                                fontSize: "16px",
+                                                padding: "0 30px",
+                                                background: "rgba(0, 102, 255, 0.2)",
+                                                borderColor: "rgba(0, 102, 255, 0.4)",
+                                                color: "#0066FF"
+                                            }}
+                                        >
+                                            Connect with Password
+                                        </Button>
+                                        <Button
+                                            type="primary"
+                                            icon={<LinkOutlined />}
+                                            onClick={() => showPermanentAccessModal()}
+                                            style={{
+                                                height: "50px",
+                                                fontSize: "16px",
+                                                padding: "0 30px",
+                                                background: "rgba(0, 183, 255, 0.2)",
+                                                borderColor: "rgba(0, 183, 255, 0.4)",
+                                                color: "#00BFFF"
+                                            }}
+                                        >
+                                            Connect with Permanent Access
+                                        </Button>
+                                    </Space>
                                 </div>
                             </div>
                         </section>
@@ -1813,30 +1923,49 @@ function Main() {
                                                     borderColor: 'rgba(255,255,255,0.2)'
                                                 }
                                             }}
-                                            onClick={() => connectToSavedHost(host)}
+                                            onClick={() => {
+                                                if (host.permanentAccess) {
+                                                    showPermanentAccessModal(host);
+                                                } else {
+                                                    connectToSavedHost(host);
+                                                }
+                                            }}
                                         >
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                 <div style={{
                                                     width: '32px',
                                                     height: '32px',
-                                                    background: 'rgba(0,183,255,0.2)',
+                                                    background: host.permanentAccess ? 'rgba(0,183,255,0.2)' : 'rgba(0,183,255,0.2)',
                                                     borderRadius: '6px',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    color: '#00BFFF'
+                                                    color: host.permanentAccess ? '#00BFFF' : '#00BFFF'
                                                 }}>
                                                     <LaptopOutlined style={{ fontSize: '16px' }} />
                                                 </div>
                                                 <div>
-                                                    <Text style={{ 
-                                                        color: 'rgba(255,255,255,0.85)', 
-                                                        fontSize: '14px',
-                                                        fontWeight: '500',
-                                                        display: 'block'
-                                                    }}>
-                                                        {host.name}
-                                                    </Text>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <Text style={{ 
+                                                            color: 'rgba(255,255,255,0.85)', 
+                                                            fontSize: '14px',
+                                                            fontWeight: '500',
+                                                            display: 'block'
+                                                        }}>
+                                                            {host.name}
+                                                        </Text>
+                                                        {host.permanentAccess && (
+                                                            <Badge 
+                                                                count="PA" 
+                                                                style={{ 
+                                                                    backgroundColor: '#00BFFF',
+                                                                    fontSize: '8px',
+                                                                    fontWeight: 'bold'
+                                                                }} 
+                                                                title="Permanent Access"
+                                                            />
+                                                        )}
+                                                    </div>
                                                     <Text style={{ 
                                                         color: 'rgba(255,255,255,0.45)', 
                                                         fontSize: '12px',
@@ -1844,6 +1973,15 @@ function Main() {
                                                     }}>
                                                         Last connected: {new Date(host.lastConnected).toLocaleDateString()}
                                                     </Text>
+                                                    {host.label && (
+                                                        <Text style={{ 
+                                                            color: 'rgba(0,183,255,0.8)', 
+                                                            fontSize: '11px',
+                                                            display: 'block'
+                                                        }}>
+                                                            Label: {host.label}
+                                                        </Text>
+                                                    )}
                                                 </div>
                                             </div>
                                             <Button
@@ -2003,6 +2141,46 @@ function Main() {
                     />
                     <Text type="secondary">
                         Enter the machine ID and password provided by the host.
+                    </Text>
+                </div>
+            </Modal>
+
+            {/* Permanent Access Modal */}
+            <Modal
+                title="Connect with Permanent Access"
+                open={permanentAccessModalVisible}
+                onCancel={() => setPermanentAccessModalVisible(false)}
+                footer={[
+                    <Button key="cancel" onClick={() => setPermanentAccessModalVisible(false)}>
+                        Cancel
+                    </Button>,
+                    <Button key="submit" type="primary" onClick={handlePermanentAccessConnect}>
+                        Connect
+                    </Button>
+                ]}
+                centered
+            >
+                <div style={{ padding: "20px 0" }}>
+                    <Input
+                        placeholder="Machine ID"
+                        value={permanentAccessMachineId}
+                        onChange={(e) => setPermanentAccessMachineId(e.target.value)}
+                        style={{ marginBottom: 16 }}
+                    />
+                    <Input
+                        placeholder="Label (e.g., My Phone, Work Laptop)"
+                        value={permanentAccessLabel}
+                        onChange={(e) => setPermanentAccessLabel(e.target.value)}
+                        style={{ marginBottom: 16 }}
+                    />
+                    <Input.Password
+                        placeholder="Access Password"
+                        value={permanentAccessPassword}
+                        onChange={(e) => setPermanentAccessPassword(e.target.value)}
+                        style={{ marginBottom: 16 }}
+                    />
+                    <Text type="secondary">
+                        Enter the machine ID, label, and password for permanent access. This will allow you to connect without approval in the future.
                     </Text>
                 </div>
             </Modal>
