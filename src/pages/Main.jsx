@@ -47,8 +47,8 @@ const { Title, Text, Paragraph } = Typography;
 
 // Create socket with reconnection options
 const socket = io(
-    // "https://flydesk.pizeonfly.com",
-    "http://192.168.29.140:8080",
+    "https://flydesk.pizeonfly.com",
+    // "http://192.168.29.140:8080",
     {
         reconnection: true,
         reconnectionAttempts: Infinity,
@@ -1737,7 +1737,7 @@ function Main() {
                             key="submit"
                             type="primary"
                             onClick={handleCodeSubmit}
-                            style={{ background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)", borderColor: "transparent", marginTop: "10px" }}
+                            style={{ background: "linear-gradient(90deg, #0066FF 0%, #00BFFF 100%)", borderColor: "transparent" }}
                         >
                             Connect
                         </Button>
@@ -1773,6 +1773,123 @@ function Main() {
                         <Text style={{ display: "block", textAlign: "center", color: "rgba(255,255,255,0.45)" }}>
                             Enter the 6-digit code provided by the host
                         </Text>
+                        
+                        {/* Divider */}
+                        <Divider style={{ 
+                            margin: '24px 0', 
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderStyle: 'solid'
+                        }} />
+                        
+                        {/* Connect to Saved Computers Section */}
+                        <div style={{ marginBottom: '16px' }}>
+                            <Text style={{ 
+                                display: "block", 
+                                color: "rgba(255,255,255,0.85)", 
+                                fontSize: "16px",
+                                fontWeight: "500",
+                                marginBottom: "16px"
+                            }}>
+                                Connect to Saved Computers
+                            </Text>
+                            
+                            {savedHosts.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {savedHosts.map((host, index) => (
+                                        <div
+                                            key={host.machineId || index}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                padding: '12px 16px',
+                                                background: 'rgba(255,255,255,0.05)',
+                                                borderRadius: '8px',
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                ':hover': {
+                                                    background: 'rgba(255,255,255,0.08)',
+                                                    borderColor: 'rgba(255,255,255,0.2)'
+                                                }
+                                            }}
+                                            onClick={() => connectToSavedHost(host)}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{
+                                                    width: '32px',
+                                                    height: '32px',
+                                                    background: 'rgba(0,183,255,0.2)',
+                                                    borderRadius: '6px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: '#00BFFF'
+                                                }}>
+                                                    <LaptopOutlined style={{ fontSize: '16px' }} />
+                                                </div>
+                                                <div>
+                                                    <Text style={{ 
+                                                        color: 'rgba(255,255,255,0.85)', 
+                                                        fontSize: '14px',
+                                                        fontWeight: '500',
+                                                        display: 'block'
+                                                    }}>
+                                                        {host.name}
+                                                    </Text>
+                                                    <Text style={{ 
+                                                        color: 'rgba(255,255,255,0.45)', 
+                                                        fontSize: '12px',
+                                                        display: 'block'
+                                                    }}>
+                                                        Last connected: {new Date(host.lastConnected).toLocaleDateString()}
+                                                    </Text>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                type="text"
+                                                size="small"
+                                                icon={<DeleteOutlined />}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    deleteSavedHost(host.machineId);
+                                                }}
+                                                style={{
+                                                    color: 'rgba(255,255,255,0.45)',
+                                                    ':hover': {
+                                                        color: '#ff4d4f'
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    padding: '24px 16px',
+                                    color: 'rgba(255,255,255,0.45)'
+                                }}>
+                                    <div style={{
+                                        width: '48px',
+                                        height: '48px',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        borderRadius: '8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginBottom: '12px'
+                                    }}>
+                                        <LaptopOutlined style={{ fontSize: '24px' }} />
+                                    </div>
+                                    <Text style={{ fontSize: '14px' }}>
+                                        No saved computers yet
+                                    </Text>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </Modal>
             </ConfigProvider>
