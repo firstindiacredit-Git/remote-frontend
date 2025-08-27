@@ -59,6 +59,7 @@ const socket = io(
 
 function Main() {
     const canvasRef = useRef(null);
+    const screenDataReceived = useRef(false);
     const [hostId, setHostId] = useState("");
     const [availableHosts, setAvailableHosts] = useState([]);
     const [connected, setConnected] = useState(false);
@@ -120,6 +121,9 @@ function Main() {
                     from: socket.id
                 });
             }
+            
+            // Fetch permanent access data when connected
+            fetchPermanentAccessData();
         });
 
         socket.on("disconnect", (reason) => {
@@ -160,12 +164,26 @@ function Main() {
 
         // Screen data handler
         socket.on("screen-data", (data) => {
-            if (!canvasRef.current) return;
+            console.log("Received screen data from host");
+            if (!canvasRef.current) {
+                console.log("Canvas ref not available");
+                return;
+            }
 
             const img = new Image();
             img.onload = () => {
                 const ctx = canvasRef.current.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvasRef.current.width, canvasRef.current.height);
+                console.log("Screen data rendered to canvas");
+                
+                // Show success message on first screen data received
+                if (connected && !screenDataReceived.current) {
+                    screenDataReceived.current = true;
+                    message.success("Screen sharing started successfully!");
+                }
+            };
+            img.onerror = (err) => {
+                console.error("Error loading screen image:", err);
             };
             img.src = data.imageData;
         });
@@ -248,25 +266,61 @@ function Main() {
             setPendingConnection(false);
         });
 
-        socket.on("connection-accepted", (hostInfo) => {
-            message.success("Connection approved by host!");
+        // Connection acceptance handler
+        socket.on("connection-accepted", (data) => {
+            console.log("Received connection acceptance:", data);
+            console.log("Socket ID:", socket.id);
+            console.log("Host ID:", data.hostId);
+            console.log("Is permanent access:", data.permanentAccess);
+            console.log("Is automatic:", data.automatic);
+            
+            if (data.permanentAccess) {
+                message.success("Permanent access connection established! Setting up screen sharing...");
+                console.log("Permanent access connection - will start screen sharing shortly");
+            } else {
+                message.success("Connection approved by host!");
+            }
             setPendingConnection(false);
 
-            setHostId(hostInfo.hostId);
+            setHostId(data.hostId);
             setConnected(true);
             setFullScreenMode(true);
+            screenDataReceived.current = false; // Reset flag for new connection
             setCurrentHostInfo({
-                id: hostInfo.hostId,
-                name: hostInfo.hostName
+                id: data.hostId,
+                name: data.hostName
             });
 
-            socket.emit("connect-to-host", hostInfo.hostId);
-            socket.emit("request-screen", {
-                to: hostInfo.hostId,
-                from: socket.id
-            });
+            // Add a small delay to ensure proper connection sequencing
+            const delay = data.permanentAccess ? 2000 : 500; // Longer delay for permanent access
+            setTimeout(() => {
+                console.log("Sending connect-to-host event to:", data.hostId);
+                if (data.permanentAccess) {
+                    message.info("Connecting to host...");
+                }
+                socket.emit("connect-to-host", data.hostId);
+                
+                // Add another small delay before requesting screen
+                const screenDelay = data.permanentAccess ? 1000 : 500;
+                setTimeout(() => {
+                    console.log("Sending request-screen event to:", data.hostId);
+                    if (data.permanentAccess) {
+                        message.info("Requesting screen sharing...");
+                    }
+                    socket.emit("request-screen", {
+                        to: data.hostId,
+                        from: socket.id
+                    });
+                }, screenDelay);
+            }, delay);
 
             setKeyboardActive(true);
+            
+            // If this is a permanent access connection, fetch the data
+            if (data.permanentAccess) {
+                console.log("Permanent access connection, fetching data...");
+                fetchPermanentAccessData();
+            }
         });
 
         socket.on("connection-rejected", () => {
@@ -340,6 +394,7 @@ function Main() {
         });
 
         socket.on("permanent-access-set-notification", (data) => {
+            console.log("Received permanent access set notification:", data);
             message.success(`Permanent access set successfully for ${data.computerName}!`);
             
             // Save this host in localStorage for future connections
@@ -352,12 +407,14 @@ function Main() {
                 permanentAccess: true
             };
 
+            console.log("Adding new saved host:", newSavedHost);
             setSavedHosts(prev => {
                 // Update if exists, add if not
                 const updated = prev.some(h => h.machineId === data.machineId)
                     ? prev.map(h => h.machineId === data.machineId ? { ...h, ...newSavedHost } : h)
                     : [...prev, newSavedHost];
 
+                console.log("Updated saved hosts:", updated);
                 // Save to localStorage
                 localStorage.setItem('savedHosts', JSON.stringify(updated));
                 return updated;
@@ -369,6 +426,36 @@ function Main() {
                 message.success("Permanent access authentication successful!");
             } else {
                 message.error(data.message || "Permanent access authentication failed");
+            }
+        });
+
+        // Handle permanent access data from server
+        socket.on("permanent-access-data", (data) => {
+            console.log("Received permanent access data:", data);
+            if (data.success) {
+                console.log("Processing permanent access data:", data.data);
+                // Update saved hosts with permanent access data from server
+                const newSavedHosts = data.data.map(record => ({
+                    machineId: record.machineId,
+                    name: record.computerName,
+                    permanentAccess: true,
+                    credentials: record.credentials
+                }));
+                
+                console.log("New saved hosts from server:", newSavedHosts);
+                setSavedHosts(prev => {
+                    // Merge with existing saved hosts, avoiding duplicates
+                    const existingIds = new Set(prev.map(h => h.machineId));
+                    const newHosts = newSavedHosts.filter(h => !existingIds.has(h.machineId));
+                    const updated = [...prev, ...newHosts];
+                    
+                    console.log("Updated saved hosts:", updated);
+                    // Save to localStorage
+                    localStorage.setItem('savedHosts', JSON.stringify(updated));
+                    return updated;
+                });
+            } else {
+                console.error("Failed to fetch permanent access data:", data.message);
             }
         });
 
@@ -387,8 +474,22 @@ function Main() {
             socket.off("password-auth-response");
             socket.off("permanent-access-set-notification");
             socket.off("permanent-access-auth-response");
+            socket.off("permanent-access-data");
         };
     }, [hostId, modifierKeys]);
+
+    // Function to fetch permanent access data from server
+    const fetchPermanentAccessData = () => {
+        console.log("Fetching permanent access data...");
+        if (socket.connected) {
+            console.log("Socket connected, sending fetch-permanent-access request");
+            socket.emit("fetch-permanent-access", {
+                clientId: socket.id
+            });
+        } else {
+            console.log("Socket not connected, cannot fetch permanent access data");
+        }
+    };
 
     // Save hosts to localStorage when they change
     useEffect(() => {
@@ -634,11 +735,42 @@ function Main() {
 
     // Function to show permanent access modal
     const showPermanentAccessModal = (host = null) => {
+        console.log("Showing permanent access modal for host:", host);
         if (host) {
             setPermanentAccessMachineId(host.machineId);
             setPermanentAccessLabel(host.label || "");
+            console.log("Set machine ID:", host.machineId, "and label:", host.label);
         }
         setPermanentAccessModalVisible(true);
+    };
+
+    // Function to test permanent access connection
+    const testPermanentAccessConnection = (host) => {
+        console.log("Testing permanent access connection for host:", host);
+        if (host.credentials && host.credentials.length > 0) {
+            const credential = host.credentials[0]; // Use the first credential
+            console.log("Using credential:", credential);
+            
+            // For testing, we'll use a prompt to get the password
+            const password = prompt("Enter password for permanent access:");
+            if (password) {
+                socket.emit("connect-with-permanent-access", {
+                    machineId: host.machineId,
+                    label: credential.label,
+                    password: password
+                });
+            }
+        } else {
+            console.log("No credentials found for host:", host);
+            message.error("No permanent access credentials found for this host");
+        }
+    };
+
+    // Function to manually test the permanent access flow
+    const testPermanentAccessFlow = () => {
+        console.log("Testing permanent access flow...");
+        fetchPermanentAccessData();
+        message.info("Testing permanent access flow - check console for logs");
     };
 
     // Add a helper to connect to a saved host
@@ -1893,15 +2025,46 @@ function Main() {
                         
                         {/* Connect to Saved Computers Section */}
                         <div style={{ marginBottom: '16px' }}>
-                            <Text style={{ 
-                                display: "block", 
-                                color: "rgba(255,255,255,0.85)", 
-                                fontSize: "16px",
-                                fontWeight: "500",
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'space-between',
                                 marginBottom: "16px"
                             }}>
-                                Connect to Saved Computers
-                            </Text>
+                                <Text style={{ 
+                                    color: "rgba(255,255,255,0.85)", 
+                                    fontSize: "16px",
+                                    fontWeight: "500"
+                                }}>
+                                    Connect to Saved Computers
+                                </Text>
+                                <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<AppstoreOutlined />}
+                                    onClick={fetchPermanentAccessData}
+                                    style={{
+                                        color: 'rgba(255,255,255,0.6)',
+                                        fontSize: '12px'
+                                    }}
+                                    title="Refresh saved computers"
+                                >
+                                    Refresh
+                                </Button>
+                                <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<CodeOutlined />}
+                                    onClick={testPermanentAccessFlow}
+                                    style={{
+                                        color: 'rgba(255,255,255,0.6)',
+                                        fontSize: '12px'
+                                    }}
+                                    title="Test permanent access flow"
+                                >
+                                    Test
+                                </Button>
+                            </div>
                             
                             {savedHosts.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
