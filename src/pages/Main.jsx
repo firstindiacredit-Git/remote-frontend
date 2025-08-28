@@ -459,6 +459,46 @@ function Main() {
             }
         });
 
+        // Handle host disconnection
+        socket.on("host-disconnected", (data) => {
+            console.log("Host disconnected:", data);
+            
+            // Show alert to user with more specific message
+            const hostName = data.computerName || 'Unknown Computer';
+            const disconnectReason = data.reason || 'Connection lost';
+            
+            let alertMessage = `Host "${hostName}" has disconnected. `;
+            if (disconnectReason === "Host manually disconnected you") {
+                alertMessage += "The host manually ended the connection.";
+            } else if (disconnectReason === "Host not found or not online") {
+                alertMessage += "The host computer is offline or not available.";
+            } else {
+                alertMessage += `Reason: ${disconnectReason}`;
+            }
+            alertMessage += " You have been returned to the main page.";
+            
+            message.error(alertMessage);
+            
+            // Reset all connection states
+            setHostId("");
+            setConnected(false);
+            setKeyboardActive(false);
+            setCurrentHostInfo(null);
+            setFullScreenMode(false);
+            setPendingConnection(false);
+            setPendingHostInfo(null);
+            
+            // Reset screen data flag
+            screenDataReceived.current = false;
+            
+            // Stop any active recording
+            if (recording) {
+                setRecording(false);
+            }
+            
+            console.log("Connection reset due to host disconnection");
+        });
+
         return () => {
             // Cleanup
             socket.off("host-available");
@@ -475,6 +515,7 @@ function Main() {
             socket.off("permanent-access-set-notification");
             socket.off("permanent-access-auth-response");
             socket.off("permanent-access-data");
+            socket.off("host-disconnected");
         };
     }, [hostId, modifierKeys]);
 
@@ -1764,7 +1805,7 @@ function Main() {
                         </section>
 
                         {/* Saved Connections Section */}
-                        <section style={{
+                      {/*    <section style={{
                             padding: "60px 0",
                             background: "#0a0a0a",
                             position: "relative"
@@ -1882,7 +1923,7 @@ function Main() {
                                     </Space>
                                 </div>
                             </div>
-                        </section>
+                        </section>  */}
 
                     </main>
 
